@@ -1,56 +1,56 @@
-# Design: Gruparea butoanelor din header (Șterge tot + Importă)
+# Design: Butoanele din header (Clienți / Produse)
 
 **Data:** 2026-08-06
-**Status:** Aprobat de utilizator (variantă A — grup unit, ținut roșu)
+**Status:** Aprobat de utilizator (varianta finală — 2 butoane în header, Șterge tot demovat ca iconiță)
 
 ## Context
 
-Pagini **Clienți** și **Produse** au în header trei butoane aranjate într-un rând simplu:
+Pagini **Clienți** și **Produse** aveau în header trei butoane într-un rând: **Adaugă** (umplut, verde), **Șterge tot** (contur roșu), **Importă** (contur verde). Utilizatorul a găsit cele trei butoane libere „împrăștiate" și a cerut o reorganizare.
 
-- **Adaugă** — umplut, verde forest (acțiune primară)
-- **Șterge tot** — contur alb + roșu (acțiune distructivă)
-- **Importă** — contur alb + verde forest
+Au fost evaluate trei variante:
 
-Utilizatorul consideră cele trei butoane libere o vedere „împrăștiată" și vrea o grupare vizuală. A fost ales abordarea **A**: grupează cele două butoane cu contur (Șterge tot + Importă) într-un singur control cu contur comun și separator, păstrând **Adaugă** separat.
+1. **Grup unit** (Șterge tot + Importă într-un singur contur, cu separator) — implementat, dar respins de utilizator: tot „trei butoane apropiate".
+2. **Meniu overflow (⋯)** — ascunde Importă într-un dropdown; respins (acțiune utilă prea ascunsă, fără pattern de dropdown în aplicație).
+3. **Varianta finală (aleasă):** header păstrează doar acțiunile de introducere date (Adaugă + Importă); **Șterge tot** devine o iconiță discretă de coș de gunoi lângă căutare, în cardul tabelului.
 
 ## Design
 
-Header-ul păstrează layout-ul actual (titlu stânga, butoane dreapta, `flex flex-wrap items-end justify-between gap-4`), dar cele două butoane outline devin un **grup unit** cu un contur partajat:
+### Header (ambele pagini)
+
+Doar **două butoane**, ambele cu aceeași intenție (introduc date):
 
 ```
-[+] Adaugă produs      ┌──────────────────┬────────────────────┐
-                      │  ✕ Șterge tot    │  ↑ Importă produse │
-                      └──────────────────┴────────────────────┘
-  filled forest-800     one shared outline + divider in the middle
-  white text            left half: red text/icon (stays destructive)
-                        right half: forest text, amber hover on icon
+[+] Adaugă produs      [↑ Importă produse]
+  filled forest-800      outline, hover amber pe icon
 ```
 
-### Detalii
+- **Adaugă** — umplut, verde forest, text alb (acțiune primară).
+- **Importă** — contur forest, fundal alb; spinner în timpul importului; dezactivat + `opacity-50` când e ocupat.
 
-- **Grup:** un singur container `inline-flex` cu contur `border-forest-200`, colțuri `rounded-xl`, fundal alb, `shadow-sm`. Cele două butoane din interior **nu au contur propriu**.
-- **Divider:** o linie verticală `border-l border-forest-100` între cele două părți.
-- **Jumătatea stângă (Șterge tot):** text/iconă roșii (`text-red-600`), hover fundal `red-50`. Păstrează textul „Șterge tot" roșu — confirmat explicit de utilizator.
-- **Jumătatea dreaptă (Importă):** text verde forest (`text-forest-800`), iconă `Upload` cu hover amber (comportamentul actual), hover fundal `forest-50`. Păstrează textul existent („Importă produse" / „Importă clienți/agenți").
-- **Starea busy:** în timpul importului, icona devine `Spinner` (comportamentul actual), butonul dezactivat, `disabled:opacity-50`.
-- **Răspuns la hover:** fiecare jumătate se evidențiază independent (nu întregul grup).
-- **Clienți și Produse:** exact același tip de grup, pentru consistență.
+### Cardul tabelului (ambele pagini)
 
-## Componentă partajată
+**Șterge tot** — demovat la o iconiță de coș de gunoi, lângă câmpul de căutare:
 
-Pentru a evita dublarea, se creează o componentă mică reutilizabilă în `src/components/shared.tsx` (alături de `Modal`, `Field` etc.):
-
-```tsx
-// Semnătură (orientativă — implementare la alegere)
-export function ActionGroup({ children }: { children: ReactNode })
+```
+┌───────────────────────────────────────────────────────┐
+│  Produse (cod → grupă)            [🔍 search…]  🗑     │
+│                                                        │
+│  ... tabel ...                                         │
+└───────────────────────────────────────────────────────┘
 ```
 
-- Rol: doar wrapper vizual — contur comun, colțuri, fundal, `shadow-sm`, `inline-flex`.
-- Părțile rămân butoane `button` obișnuite cu clasele lor interioare (fără contur propriu), separate printr-o bordură verticală.
-- Rădăcină fără alte responsabilități: nu gestionează click-uri, nu știe despre import/ștergere.
+- Buton pătrat mic (`h-9 w-9`), contur `forest-200`, iconiță `Trash2` roșie discret (`text-red-400`).
+- Hover: fundal `red-50`, iconiță `text-red-600`.
+- Tooltip `title="Șterge tot"`.
+- Click → modalul de confirmare existent (`ConfirmDeleteModal`), neschimbat.
+
+### Componente partajate
+
+- `TableCard` primește un slot opțional `actions?: ReactNode`, randat lângă `SearchInput` în antetul cardului. Nicio altă schimbare în componentă.
+- Componenta `ActionGroup` (din varianta anterioară) se elimină complet — nu mai e folosită.
 
 ## Date flow / erori / testare
 
-- **Date flow:** neschimbat. Butoanele apelează exact aceleași handler-e ca azi (`doImport`, `setConfirmingAll`).
-- **Erori:** neschimbat — toast-urile existente acoperă cazurile de import/ștergere.
-- **Testare:** verificare vizuală în dev — grupul arată unit, hover-urile independente, spinner-ul apare în jumătatea corectă în timpul importului, layout-ul se rulează ok pe fereastră îngustă (wrap ca un bloc). Verificare `cargo check` + `npx tsc --noEmit` (comenzi existente).
+- **Date flow:** neschimbat. Butoanele apelează exact aceleași handler-e ca înainte (`doImport`, `setConfirmingAll`).
+- **Erori:** neschimbat — toast-urile existente acoperă import/ștergere.
+- **Testare:** verificare vizuală în dev — header cu 2 butoane, iconița de coș lângă căutare, hover-urile corecte, spinner la import, confirmarea de ștergere apare la click. Verificare `npx tsc --noEmit` (backend-ul nu e atins).

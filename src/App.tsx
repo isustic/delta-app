@@ -1,3 +1,4 @@
+import React from "react";
 import { useEffect, useState } from "react";
 import {
   BarChart3,
@@ -26,6 +27,47 @@ const isMac =
   /Mac|iPhone|iPad|iPod/.test(navigator.platform || navigator.userAgent || "");
 const SHORTCUT = isMac ? "⌘B" : "Ctrl+B";
 const TOGGLE_LABEL = "Comută bara laterală";
+
+class ErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { error: Error | null }
+> {
+  state: { error: Error | null } = { error: null };
+
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="flex h-full items-center justify-center bg-forest-50 p-6">
+          <div className="max-w-md rounded-2xl border border-forest-100 bg-white p-8 text-center shadow-xl">
+            <h1 className="font-display text-xl font-semibold text-forest-950">
+              Aplicația a întâmpinat o eroare
+            </h1>
+            <p className="mt-2 text-sm text-forest-600">
+              Datele din baza de date nu sunt afectate. Reîncarcă aplicația pentru a continua.
+            </p>
+            <p className="mt-3 break-words rounded-lg bg-forest-50 p-3 text-left font-mono text-xs text-forest-500">
+              {this.state.error.message}
+            </p>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="mt-5 rounded-xl bg-forest-800 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-forest-700"
+            >
+              Reîncarcă
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+export { ErrorBoundary };
 
 const labelClip =
   "overflow-hidden whitespace-nowrap transition-all duration-300 ease-in-out";
@@ -292,7 +334,7 @@ export default function App() {
           {expanded && (
             <div className="mt-auto px-5 pb-5">
               <p className="whitespace-nowrap text-center text-[10px] tracking-wide text-forest-400/70">
-                v1.0.0
+                v1.0.1
               </p>
             </div>
           )}

@@ -3,6 +3,7 @@ import { open, save } from "@tauri-apps/plugin-dialog";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import {
   AlertCircle,
+  AlertTriangle,
   ArrowDownToLine,
   ArrowLeft,
   ArrowRight,
@@ -15,6 +16,7 @@ import {
   FileSpreadsheet,
   History,
   Layers,
+  PackagePlus,
   Search,
   Trash2,
   TrendingDown,
@@ -25,16 +27,21 @@ import {
 } from "lucide-react";
 import {
   exportRaportData,
+  filtreazaProduseLipsa,
   genereazaRaport,
+  getProdus,
   incarcaRaport,
   listaRapoarte,
   salveazaRaport,
   stergeRaport,
+  type Mismatch,
+  type Produs,
   type RaportSalvat,
   type Report,
 } from "../lib/api";
 import { Spinner, ToastHost, useToasts } from "../components/ui";
 import { ConfirmDeleteModal } from "../components/shared";
+import { EditProdusModal, AddProdusModal, LipsaProduseModal } from "./Produse";
 
 const nf = new Intl.NumberFormat("ro-RO", {
   minimumFractionDigits: 2,
@@ -596,6 +603,120 @@ function GeneratingPanel({ an1, an2 }: { an1: string; an2: string }) {
   );
 }
 
+function NeconcordanteBanner({
+  items,
+  onEdit,
+}: {
+  items: Mismatch[];
+  onEdit: (m: Mismatch) => void;
+}) {
+  const [deschis, setDeschis] = useState(false);
+  const lipsa = items.filter((m) => m.lipsa_bd).length;
+  const dif = items.length - lipsa;
+  if (items.length === 0) return null;
+  return (
+    <div className="animate-fade-up overflow-hidden rounded-2xl border border-amber-200 bg-amber-50/60 shadow-[0_2px_10px_rgba(10,49,40,0.06)]">
+      <button
+        onClick={() => setDeschis((d) => !d)}
+        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-amber-50"
+      >
+        <div className="flex items-center gap-2.5">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-400 text-forest-950">
+            <AlertTriangle size={16} />
+          </span>
+          <div>
+            <p className="text-sm font-bold text-forest-900">
+              {items.length} produs{items.length === 1 ? "" : "e"} de verificat
+            </p>
+            <p className="text-[11px] text-forest-500">
+              {dif > 0 && <>{dif} cu grupă diferită față de fișier</>}
+              {dif > 0 && lipsa > 0 && " · "}
+              {lipsa > 0 && <span className="font-semibold text-red-600">{lipsa} lipsă din baza de date</span>}
+            </p>
+          </div>
+        </div>
+        <ChevronDown
+          size={16}
+          className={`shrink-0 text-amber-600 transition ${deschis ? "rotate-180" : ""}`}
+        />
+      </button>
+
+      {deschis && (
+        <div className="border-t border-amber-200/70">
+          <div className="max-h-64 overflow-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="sticky top-0 z-10 bg-amber-100/80 text-[10px] uppercase tracking-wider text-forest-600">
+                <tr>
+                  <th className="px-4 py-2 font-semibold">Cod</th>
+                  <th className="px-3 py-2 font-semibold">Produs</th>
+                  <th className="px-3 py-2 font-semibold">În fișier</th>
+                  <th className="px-3 py-2 font-semibold">În baza de date</th>
+                  <th className="px-4 py-2 text-right font-semibold">An</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-amber-100">
+                {items.map((m, i) => (
+                  <tr
+                    key={i}
+                    className={`transition hover:bg-amber-50/60 ${
+                      m.lipsa_bd ? "bg-red-50/50" : "bg-white"
+                    }`}
+                  >
+                    <td className="num px-4 py-1.5 font-mono text-forest-700">
+                      <span className="flex items-center gap-1.5">
+                        {m.lipsa_bd && (
+                          <span
+                            title="Codul nu există în baza de date"
+                            className="rounded-full bg-red-600 px-1.5 py-px text-[9px] font-bold uppercase tracking-wide text-white"
+                          >
+                            Lipsă
+                          </span>
+                        )}
+                        {m.cod}
+                      </span>
+                    </td>
+                    <td className="max-w-[16rem] px-3 py-1.5">
+                      <button
+                        onClick={() => onEdit(m)}
+                        title={`Editează ${m.denumire}`}
+                        className="block w-full truncate text-left text-forest-900 underline-offset-2 transition hover:text-forest-700 hover:underline"
+                      >
+                        {m.denumire}
+                      </button>
+                    </td>
+                    <td className="px-3 py-1.5">
+                      <span className="rounded-full bg-forest-100 px-2 py-0.5 font-semibold text-forest-700">
+                        {m.grupa_fisier}
+                      </span>
+                    </td>
+                    <td className="px-3 py-1.5">
+                      {m.lipsa_bd ? (
+                        <span className="rounded-full bg-red-100 px-2 py-0.5 font-semibold text-red-700">
+                          —
+                        </span>
+                      ) : (
+                        <span className="rounded-full bg-amber-200/80 px-2 py-0.5 font-semibold text-forest-800">
+                          {m.grupa_bd}
+                        </span>
+                      )}
+                    </td>
+                    <td className="num px-4 py-1.5 text-right font-semibold text-forest-600">
+                      {m.an}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="border-t border-amber-200/70 px-4 py-2 text-[11px] text-forest-500">
+            Poți corecta grupele din pagina Produse dacă grupa din baza de date nu este cea dorită.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function GrupaFilter({
   grupe,
   selectate,
@@ -866,7 +987,12 @@ export default function Rapoarte() {
   const [agentFilter, setAgentFilter] = useState<string>("");
   const [clientSearch, setClientSearch] = useState("");
   const [grupeSelectate, setGrupeSelectate] = useState<string[]>([]);
-  const [busy, setBusy] = useState(false);
+  const [generez, setGenerez] = useState(false);
+  const [seIncarca, setSeIncarca] = useState(false);
+  const [seExporta, setSeExporta] = useState(false);
+  // Orice operație lungă blochează acțiunile concurente; panoul de generare
+  // apare doar la generare efectivă, nu la încărcare/export.
+  const busy = generez || seIncarca || seExporta;
   const [dragOver, setDragOver] = useState(false);
   const [visible, setVisible] = useState(100);
   const [istoric, setIstoric] = useState<RaportSalvat[]>([]);
@@ -874,6 +1000,14 @@ export default function Rapoarte() {
   const [deSters, setDeSters] = useState<RaportSalvat | null>(null);
   const [istoricSearch, setIstoricSearch] = useState("");
   const [pagina, setPagina] = useState(1);
+  const [editProdus, setEditProdus] = useState<Produs | null>(null);
+  const [addProdus, setAddProdus] = useState<{
+    cod: string;
+    denumire: string;
+    grupa: string;
+  } | null>(null);
+  const [lipsa, setLipsa] = useState<Produs[] | null>(null);
+  const [lipsaYear, setLipsaYear] = useState("2026");
   const { toasts, push } = useToasts();
 
   useEffect(() => {
@@ -938,9 +1072,15 @@ export default function Rapoarte() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const anulValid = /^\d{4}$/.test(an1) && /^\d{4}$/.test(an2) && an1 !== an2;
+
   async function genereaza() {
-    if (!path1 || !path2) return;
-    setBusy(true);
+    if (!path1 || !path2 || !anulValid) return;
+    if (path1 === path2) {
+      push("error", "Alege două fișiere diferite pentru comparație.");
+      return;
+    }
+    setGenerez(true);
     try {
       const r = await genereazaRaport(path1, path2, an1, an2);
       setReport(r);
@@ -952,20 +1092,22 @@ export default function Rapoarte() {
       push("success", `Raport generat: ${r.clienti.length} clienți, ${r.sumar.length} agenți.`);
       try {
         const id = await salveazaRaport(r, fileName(path1), fileName(path2));
+        const lista = await listaRapoarte();
         setActivId(id);
-        setIstoric(await listaRapoarte());
-      } catch {
+        setIstoric(lista);
+      } catch (e) {
         setActivId(null);
+        push("error", `Raportul nu a putut fi salvat în istoric: ${e}`);
       }
     } catch (e) {
       push("error", e instanceof Error ? e.message : String(e));
     } finally {
-      setBusy(false);
+      setGenerez(false);
     }
   }
 
   async function deschide(id: number) {
-    setBusy(true);
+    setSeIncarca(true);
     try {
       const r = await incarcaRaport(id);
       setReport(r);
@@ -979,7 +1121,7 @@ export default function Rapoarte() {
     } catch (e) {
       push("error", e instanceof Error ? e.message : String(e));
     } finally {
-      setBusy(false);
+      setSeIncarca(false);
     }
   }
 
@@ -992,6 +1134,43 @@ export default function Rapoarte() {
     } catch (e) {
       push("error", e instanceof Error ? e.message : String(e));
       throw e;
+    }
+  }
+
+  async function editeazaProdus(m: Mismatch) {
+    if (m.lipsa_bd) {
+      // codul nu există în baza de date — deschide modalul de adăugare precompletat
+      setAddProdus({ cod: m.cod, denumire: m.denumire, grupa: m.grupa_fisier });
+      return;
+    }
+    try {
+      const p = await getProdus(m.cod);
+      setEditProdus(p);
+    } catch (e) {
+      push("error", e instanceof Error ? e.message : String(e));
+    }
+  }
+
+  async function deschideLipsa() {
+    if (!report) return;
+    const seen = new Set<string>();
+    const candidate = report.neconcordante
+      .filter((m) => m.lipsa_bd && !seen.has(m.cod) && seen.add(m.cod))
+      .map((m) => ({ cod: m.cod, denumire: m.denumire, grupa: m.grupa_fisier }));
+    if (candidate.length === 0) {
+      push("info", "Niciun produs lipsă din baza de date.");
+      return;
+    }
+    try {
+      const missing = await filtreazaProduseLipsa(candidate);
+      if (missing.length === 0) {
+        push("info", "Toate produsele lipsă au fost deja adăugate.");
+        return;
+      }
+      setLipsa(missing);
+      setLipsaYear(/^\d{4}$/.test(report.an2) ? report.an2 : "2026");
+    } catch (e) {
+      push("error", e instanceof Error ? e.message : String(e));
     }
   }
 
@@ -1026,6 +1205,8 @@ export default function Rapoarte() {
       filters: [{ name: "Excel", extensions: ["xlsx"] }],
     });
     if (!dest) return;
+    // macOS ignoră filtrele de extensie din dialogul de salvare.
+    const destFinal = dest.toLowerCase().endsWith(".xlsx") ? dest : `${dest}.xlsx`;
     const idx = idxVizibile;
     const exportReport: Report = {
       ...report,
@@ -1039,14 +1220,14 @@ export default function Rapoarte() {
         valori: idx.map((i) => s.valori[i]),
       })),
     };
-    setBusy(true);
+    setSeExporta(true);
     try {
-      await exportRaportData(exportReport, dest);
+      await exportRaportData(exportReport, destFinal);
       push("success", "Raportul a fost exportat în Excel.");
     } catch (e) {
       push("error", e instanceof Error ? e.message : String(e));
     } finally {
-      setBusy(false);
+      setSeExporta(false);
     }
   }
 
@@ -1139,7 +1320,7 @@ export default function Rapoarte() {
             role="An precedent"
             subtext="Baza de comparație"
             an={an1}
-            onAn={setAn1}
+            onAn={(v) => setAn1(v.replace(/\D/g, "").slice(0, 4))}
             path={path1}
             onPick={(p) => setSlot(1, p)}
             onClear={() => setPath1(null)}
@@ -1152,7 +1333,7 @@ export default function Rapoarte() {
             role="An curent"
             subtext="Perioada comparată"
             an={an2}
-            onAn={setAn2}
+            onAn={(v) => setAn2(v.replace(/\D/g, "").slice(0, 4))}
             path={path2}
             onPick={(p) => setSlot(2, p)}
             onClear={() => setPath2(null)}
@@ -1189,7 +1370,7 @@ export default function Rapoarte() {
             )}
             <button
               onClick={genereaza}
-              disabled={!path1 || !path2 || busy}
+              disabled={!path1 || !path2 || busy || !anulValid}
               className="flex items-center gap-2 rounded-xl bg-amber-400 px-5 py-3 text-sm font-bold text-forest-950 shadow-[0_2px_12px_rgba(251,191,36,0.4)] transition hover:bg-amber-300 hover:shadow-[0_4px_18px_rgba(251,191,36,0.55)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
             >
               {busy ? <Spinner className="text-forest-950" /> : <Zap size={16} strokeWidth={2.6} />}
@@ -1344,6 +1525,16 @@ export default function Rapoarte() {
                 </span>
               </div>
 
+              {report.neconcordante.some((m) => m.lipsa_bd) && (
+                <button
+                  onClick={deschideLipsa}
+                  disabled={busy}
+                  className="flex items-center gap-2 rounded-xl border border-amber-300 bg-amber-400 px-4 py-2 text-sm font-semibold text-forest-950 shadow-sm transition hover:bg-amber-300 active:scale-[0.98] disabled:opacity-50"
+                >
+                  <PackagePlus size={15} />
+                  Adaugă produse lipsă
+                </button>
+              )}
               <button
                 onClick={exporta}
                 disabled={busy}
@@ -1358,6 +1549,15 @@ export default function Rapoarte() {
             </div>
 
             <div className="h-px w-full bg-gradient-to-r from-transparent via-forest-100 to-transparent" />
+
+            {report.neconcordante.length > 0 && (
+              <div className="px-4 pt-3">
+                <NeconcordanteBanner
+                  items={report.neconcordante}
+                  onEdit={editeazaProdus}
+                />
+              </div>
+            )}
 
             <div className="flex flex-wrap items-center gap-3 px-4 py-3">
               <div className="flex shrink-0 rounded-xl border border-forest-200 bg-forest-50/60 p-1 shadow-inner">
@@ -1527,6 +1727,63 @@ export default function Rapoarte() {
             setDeSters(null);
           }}
           onClose={() => setDeSters(null)}
+        />
+      )}
+
+      {editProdus && (
+        <EditProdusModal
+          row={editProdus}
+          push={push}
+          onChanged={() => {
+            // Elimină produsul din lista de neconcordanțe — a fost corectat sau șters.
+            setReport((r) =>
+              r
+                ? { ...r, neconcordante: r.neconcordante.filter((m) => m.cod !== editProdus.cod) }
+                : r,
+            );
+            push("info", "Produs actualizat. Regenerați raportul pentru a aplica modificarea.");
+            setEditProdus(null);
+          }}
+          onClose={() => setEditProdus(null)}
+        />
+      )}
+
+      {addProdus && (
+        <AddProdusModal
+          initial={addProdus}
+          push={push}
+          onChanged={(codSalvat) => {
+            setReport((r) =>
+              r ? { ...r, neconcordante: r.neconcordante.filter((m) => m.cod !== codSalvat) } : r,
+            );
+            push("info", "Produs adăugat. Regenerați raportul pentru a aplica modificarea.");
+            setAddProdus(null);
+          }}
+          onClose={() => setAddProdus(null)}
+        />
+      )}
+
+      {lipsa && (
+        <LipsaProduseModal
+          items={lipsa}
+          year={lipsaYear}
+          onYear={setLipsaYear}
+          push={push}
+          onAdded={(coduriAdaugate) => {
+            const adaugate = new Set(coduriAdaugate);
+            setReport((r) =>
+              r
+                ? {
+                    ...r,
+                    neconcordante: r.neconcordante.filter(
+                      (m) => !(m.lipsa_bd && adaugate.has(m.cod)),
+                    ),
+                  }
+                : r,
+            );
+            setLipsa(null);
+          }}
+          onClose={() => setLipsa(null)}
         />
       )}
 

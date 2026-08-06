@@ -55,11 +55,10 @@ pub fn import_produse_file(conn: &Connection, path: &Path) -> Result<usize, Stri
         };
         let denumire = cell_to_string(row.get(1)).unwrap_or_default();
         let grupa = cell_to_string(row.get(2)).unwrap_or_default();
-        let subgrupa = cell_to_string(row.get(3)).unwrap_or_default();
         tx.execute(
-            "INSERT INTO produse (cod, denumire, grupa, subgrupa) VALUES (?1, ?2, ?3, ?4)
-             ON CONFLICT(cod) DO UPDATE SET denumire = ?2, grupa = ?3, subgrupa = ?4",
-            params![cod, denumire, grupa, subgrupa],
+            "INSERT INTO produse (cod, denumire, grupa) VALUES (?1, ?2, ?3)
+             ON CONFLICT(cod) DO UPDATE SET denumire = ?2, grupa = ?3",
+            params![cod, denumire, grupa],
         )
         .map_err(|e| e.to_string())?;
         count += 1;
@@ -111,7 +110,7 @@ mod tests {
     fn setup_db() -> Connection {
         let conn = Connection::open_in_memory().unwrap();
         conn.execute_batch(
-            "CREATE TABLE produse (cod TEXT PRIMARY KEY, denumire TEXT, grupa TEXT, subgrupa TEXT);
+            "CREATE TABLE produse (cod TEXT PRIMARY KEY, denumire TEXT, grupa TEXT);
              CREATE TABLE agenti_clienti (client TEXT PRIMARY KEY, agent TEXT);",
         )
         .unwrap();

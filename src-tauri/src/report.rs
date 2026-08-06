@@ -26,35 +26,40 @@ pub struct Report {
     pub clienti: Vec<RandClient>,
     pub sumar: Vec<RandSumar>,
     pub agenti: Vec<String>,
+    /// Produse unde grupa din fișierul sursă diferă de grupa din baza de date.
+    #[serde(default)]
+    pub neconcordante: Vec<Mismatch>,
 }
 
-fn make_label(grupa: &str, subgrupa: &str) -> String {
-    let s = subgrupa.to_lowercase();
-    if s.contains("tehnic") {
-        format!("{} - Tehnic", grupa)
-    } else if s.contains("retail") {
-        format!("{} - Retail", grupa)
-    } else {
-        grupa.to_string()
-    }
+#[derive(Clone, Serialize, Deserialize)]
+pub struct Mismatch {
+    pub cod: String,
+    pub denumire: String,
+    /// Grupa din fișierul Excel sursă (col. B).
+    pub grupa_fisier: String,
+    /// Grupa din baza de date (folosită în raport).
+    pub grupa_bd: String,
+    /// Anul (an1 sau an2) în care a apărut neconcordanța.
+    pub an: String,
+    /// Codul nu există în baza de date (s-a folosit grupa din fișier).
+    pub lipsa_bd: bool,
 }
 
-pub fn load_produse(conn: &Connection) -> Result<HashMap<String, (String, String)>, String> {
+fn make_label(grupa: &str) -> String {
+    grupa.to_string()
+}
+
+pub fn load_produse(conn: &Connection) -> Result<HashMap<String, String>, String> {
     let mut stmt = conn
-        .prepare("SELECT cod, grupa, subgrupa FROM produse")
+        .prepare("SELECT cod, grupa FROM produse")
         .map_err(|e| e.to_string())?;
     let rows = stmt
-        .query_map([], |r| {
-            Ok((
-                r.get::<_, String>(0)?,
-                (r.get::<_, String>(1)?, r.get::<_, String>(2)?),
-            ))
-        })
+        .query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?)))
         .map_err(|e| e.to_string())?;
     let mut map = HashMap::new();
     for row in rows {
-        let (cod, rest) = row.map_err(|e| e.to_string())?;
-        map.insert(cod, rest);
+        let (cod, grupa) = row.map_err(|e| e.to_string())?;
+        map.insert(cod, grupa);
     }
     Ok(map)
 }
@@ -108,15 +113,12 @@ fn cell_num(cell: Option<&Data>) -> Option<f64> {
     }
 }
 
-fn at<'a>(row: &'a [Data], start_col: usize, abs: usize) -> Option<&'a Data> {
-    abs.checked_sub(start_col).and_then(|i| row.get(i))
-}
-
-fn accumulate(
+/// Produse găsite în fișierul Excel (cod + denumire + grupă din fișier),
+/// care nu există în baza de date. Folosite de butonul „Adaugă produse lipsă".
+pub fn collect_missing(
     path: &Path,
-    produse: &HashMap<String, (String, String)>,
-    out: &mut HashMap<(String, String), f64>,
-    labels: &mut BTreeSet<String>,
+    produse: &HashMap<String, String>,
+    out: &mut HashMap<String, (String, String)>,
 ) -> Result<(), String> {
     let mut wb: Xlsx<_> = open_workbook(path).map_err(|e| format!("deschidere xlsx: {e}"))?;
     let name = wb
@@ -134,6 +136,55 @@ fn accumulate(
             continue;
         }
         let src_grupa = cell_str(at(row, start_col, 1)); // B = Denumire grupa
+        let denumire = cell_str(at(row, start_col, 2)); // C = Denumire
+        let cod = cell_str(at(row, start_col, 4)); // E = Cod
+        let client = cell_str(at(row, start_col, 15)); // P = Client
+        let valoare = cell_num(at(row, start_col, 9)); // J = Valoare Contabila
+        if cod.as_deref() == Some("Cod") {
+            continue;
+        }
+        let (Some(cod), Some(_client), Some(_v)) = (cod, client, valoare) else {
+            continue;
+        };
+        if produse.contains_key(&cod) {
+            continue;
+        }
+        let grupa = src_grupa.unwrap_or_else(|| "Necunoscut".to_string());
+        out.entry(cod).or_insert_with(|| (denumire.unwrap_or_default(), grupa));
+    }
+    Ok(())
+}
+
+fn at<'a>(row: &'a [Data], start_col: usize, abs: usize) -> Option<&'a Data> {
+    abs.checked_sub(start_col).and_then(|i| row.get(i))
+}
+
+fn accumulate(
+    path: &Path,
+    produse: &HashMap<String, String>,
+    out: &mut HashMap<(String, String), f64>,
+    labels: &mut BTreeSet<String>,
+    an: &str,
+    mismatches: &mut Vec<Mismatch>,
+) -> Result<(), String> {
+    let mut wb: Xlsx<_> = open_workbook(path).map_err(|e| format!("deschidere xlsx: {e}"))?;
+    let name = wb
+        .sheet_names()
+        .first()
+        .cloned()
+        .ok_or_else(|| "fișierul nu are niciun sheet".to_string())?;
+    let range = wb
+        .worksheet_range(&name)
+        .map_err(|e| format!("citire sheet: {e}"))?;
+    let start_col = range.start().map(|(_, c)| c as usize).unwrap_or(0);
+
+    let mut seen: std::collections::HashSet<(String, String)> = std::collections::HashSet::new();
+    for (i, row) in range.rows().enumerate() {
+        if i == 0 {
+            continue;
+        }
+        let src_grupa = cell_str(at(row, start_col, 1)); // B = Denumire grupa
+        let denumire = cell_str(at(row, start_col, 2)); // C = Denumire
         let cod = cell_str(at(row, start_col, 4)); // E = Cod
         let client = cell_str(at(row, start_col, 15)); // P = Client
         let valoare = cell_num(at(row, start_col, 9)); // J = Valoare Contabila
@@ -145,8 +196,43 @@ fn accumulate(
         };
 
         let label = match produse.get(&cod) {
-            Some((grupa, subgrupa)) if !grupa.trim().is_empty() => make_label(grupa, subgrupa),
-            _ => src_grupa.unwrap_or_else(|| "Necunoscut".to_string()),
+            Some(grupa) if !grupa.trim().is_empty() => {
+                if let Some(src) = &src_grupa {
+                    let src_trim = src.trim();
+                    if !src_trim.is_empty()
+                        && src_trim != grupa
+                        && seen.insert((cod.clone(), grupa.clone()))
+                    {
+                        mismatches.push(Mismatch {
+                            cod: cod.clone(),
+                            denumire: denumire.unwrap_or_default(),
+                            grupa_fisier: src_trim.to_string(),
+                            grupa_bd: grupa.clone(),
+                            an: an.to_string(),
+                            lipsa_bd: false,
+                        });
+                    }
+                }
+                make_label(grupa)
+            }
+            _ => {
+                // codul nu există în baza de date — folosim grupa din fișier,
+                // dar semnalăm ca să poată fi adăugat
+                if let Some(src) = &src_grupa {
+                    let src_trim = src.trim();
+                    if !src_trim.is_empty() && seen.insert((cod.clone(), String::new())) {
+                        mismatches.push(Mismatch {
+                            cod: cod.clone(),
+                            denumire: denumire.unwrap_or_default(),
+                            grupa_fisier: src_trim.to_string(),
+                            grupa_bd: String::new(),
+                            an: an.to_string(),
+                            lipsa_bd: true,
+                        });
+                    }
+                }
+                src_grupa.unwrap_or_else(|| "Necunoscut".to_string())
+            }
         };
 
         labels.insert(label.clone());
@@ -156,7 +242,7 @@ fn accumulate(
 }
 
 pub fn build_report_with(
-    produse: HashMap<String, (String, String)>,
+    produse: HashMap<String, String>,
     agenti: HashMap<String, String>,
     path1: &Path,
     path2: &Path,
@@ -166,8 +252,11 @@ pub fn build_report_with(
     let mut sum1: HashMap<(String, String), f64> = HashMap::new();
     let mut sum2: HashMap<(String, String), f64> = HashMap::new();
     let mut labels: BTreeSet<String> = BTreeSet::new();
-    accumulate(path1, &produse, &mut sum1, &mut labels)?;
-    accumulate(path2, &produse, &mut sum2, &mut labels)?;
+    let mut mismatches: Vec<Mismatch> = Vec::new();
+    accumulate(path1, &produse, &mut sum1, &mut labels, &an1, &mut mismatches)?;
+    accumulate(path2, &produse, &mut sum2, &mut labels, &an2, &mut mismatches)?;
+    mismatches.sort_by(|a, b| a.an.cmp(&b.an).then_with(|| a.cod.cmp(&b.cod)));
+    mismatches.dedup_by(|a, b| a.cod == b.cod && a.grupa_bd == b.grupa_bd);
 
     let coloane: Vec<String> = labels.into_iter().collect();
     let ncol = coloane.len();
@@ -253,6 +342,7 @@ pub fn build_report_with(
         clienti,
         sumar,
         agenti,
+        neconcordante: mismatches,
     })
 }
 
@@ -291,12 +381,12 @@ mod tests {
     fn build_and_export_report() {
         let conn = crate::db::test_conn();
         conn.execute_batch(
-            "INSERT INTO produse (cod, denumire, grupa, subgrupa) VALUES
-               ('X1', 'OI PROD', 'OI', 'Haircare retail'),
-               ('X2', 'OI TECH', 'OI', 'Haircare tehnic'),
-               ('X3', 'MORE PROD', 'MORE INSIDE', 'Styling'),
-               ('X4', 'OI PROD 2', 'OI', 'Haircare retail'),
-               ('X5', 'OI PROD 3', 'OI', 'Haircare retail');
+            "INSERT INTO produse (cod, denumire, grupa) VALUES
+               ('X1', 'OI PROD', 'OI'),
+               ('X2', 'OI TECH', 'OI'),
+               ('X3', 'MORE PROD', 'MORE INSIDE'),
+               ('X4', 'OI PROD 2', 'OI'),
+               ('X5', 'OI PROD 3', 'OI');
              INSERT INTO agenti_clienti (client, agent) VALUES
                ('CLIENT1', 'Agent A'),
                ('CLIENT2', 'Agent B'),
@@ -329,17 +419,15 @@ mod tests {
         let report = build_report(&conn, &p1, &p2, "2025".into(), "2026".into()).unwrap();
 
         let idx = |name: &str| report.coloane.iter().position(|c| c == name).unwrap();
-        let oi_r = idx("OI - Retail");
-        let oi_t = idx("OI - Tehnic");
+        let oi = idx("OI");
         let more = idx("MORE INSIDE");
 
         let c1 = report.clienti.iter().find(|c| c.client == "CLIENT1").unwrap();
         assert_eq!(c1.agent, "Agent A");
         assert!(!c1.nou);
-        assert!((c1.valori[oi_r].0 - 100.0).abs() < 1e-6);
-        assert!((c1.valori[oi_r].1 - 120.0).abs() < 1e-6);
-        assert!((c1.valori[oi_t].0 - 50.0).abs() < 1e-6);
-        assert!((c1.valori[oi_t].1 - 0.0).abs() < 1e-6);
+        // X1 și X2 au acum aceeași grupa (OI), deci valorile se însumează.
+        assert!((c1.valori[oi].0 - 150.0).abs() < 1e-6);
+        assert!((c1.valori[oi].1 - 120.0).abs() < 1e-6);
 
         let c2 = report.clienti.iter().find(|c| c.client == "CLIENT2").unwrap();
         assert_eq!(c2.agent, "Agent B");
@@ -349,14 +437,14 @@ mod tests {
 
         let c3 = report.clienti.iter().find(|c| c.client == "CLIENT3").unwrap();
         assert!(c3.nou);
-        assert!((c3.valori[oi_r].0 - 0.0).abs() < 1e-6);
-        assert!((c3.valori[oi_r].1 - 300.0).abs() < 1e-6);
+        assert!((c3.valori[oi].0 - 0.0).abs() < 1e-6);
+        assert!((c3.valori[oi].1 - 300.0).abs() < 1e-6);
 
         assert!(report.clienti.iter().all(|c| c.client != "CLIENT4"));
 
         let sa = report.sumar.iter().find(|s| s.agent == "Agent A").unwrap();
-        assert!((sa.valori[oi_r].0 - 100.0).abs() < 1e-6);
-        assert!((sa.valori[oi_r].1 - 420.0).abs() < 1e-6);
+        assert!((sa.valori[oi].0 - 150.0).abs() < 1e-6);
+        assert!((sa.valori[oi].1 - 420.0).abs() < 1e-6);
 
         let out = dir.join("rap_test_out.xlsx");
         crate::export::export_report(&report, &out).unwrap();
@@ -391,6 +479,7 @@ mod tests {
                 valori: vec![(1.0, 2.0), (3.5, 0.0)],
             }],
             agenti: vec!["Agent A".into()],
+            neconcordante: vec![],
         };
         let json = serde_json::to_string(&report).unwrap();
         let back: Report = serde_json::from_str(&json).unwrap();
@@ -403,5 +492,11 @@ mod tests {
         assert!((back.clienti[0].valori[1].0 - 3.5).abs() < 1e-9);
         assert!((back.sumar[0].valori[0].1 - 2.0).abs() < 1e-9);
         assert_eq!(back.agenti, report.agenti);
+
+        // Rapoartele vechi (salvate înainte de apariția câmpului neconcordante)
+        // trebuie să se deserializeze cu o listă goală.
+        let old_json = r#"{"an1":"2024","an2":"2025","coloane":["A"],"clienti":[],"sumar":[],"agenti":[]}"#;
+        let old: Report = serde_json::from_str(old_json).unwrap();
+        assert!(old.neconcordante.is_empty());
     }
 }

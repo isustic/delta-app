@@ -1,5 +1,7 @@
+use crate::commands::{AgentClient, Produs};
 use crate::report::{RandClient, Report};
 use rust_xlsxwriter::{Format, FormatAlign, FormatBorder, Workbook, Worksheet, XlsxError};
+use std::io::Write;
 use std::path::Path;
 
 #[derive(Clone)]
@@ -60,6 +62,7 @@ fn sanitize_sheet_name(name: &str) -> String {
 struct MRow {
     lead: Vec<String>,
     vals: Vec<(f64, f64)>,
+    nou: bool,
 }
 
 fn write_matrix(
@@ -87,7 +90,12 @@ fn write_matrix(
     for (ri, row) in rows.iter().enumerate() {
         let r = ri as u32 + 2;
         for (j, val) in row.lead.iter().enumerate() {
-            ws.write_string_with_format(r, j as u16, val, &f.label)?;
+            let cell = if j == 0 && row.nou {
+                format!("{val} (NOU)")
+            } else {
+                val.clone()
+            };
+            ws.write_string_with_format(r, j as u16, &cell, &f.label)?;
         }
         for (k, (v1, v2)) in row.vals.iter().enumerate() {
             let c0 = nlead + (k as u16) * 3;
@@ -116,6 +124,7 @@ fn client_rows<'a>(clients: impl Iterator<Item = &'a RandClient>) -> Vec<MRow> {
         .map(|c| MRow {
             lead: vec![c.client.clone(), c.agent.clone()],
             vals: c.valori.clone(),
+            nou: c.nou,
         })
         .collect()
 }
@@ -138,6 +147,7 @@ pub fn export_report(report: &Report, dest: &Path) -> Result<(), String> {
             .map(|s| MRow {
                 lead: vec![s.agent.clone()],
                 vals: s.valori.clone(),
+                nou: false,
             })
             .collect();
         write_matrix(ws, &["Agent"], &rows, &report.coloane, &an1, &an2, &f)
@@ -174,4 +184,104 @@ pub fn export_report(report: &Report, dest: &Path) -> Result<(), String> {
 
     wb.save(dest).map_err(|e| format!("salvare xlsx: {e}"))?;
     Ok(())
+}
+
+fn export_rows_csv(
+    dest: &Path,
+    headers: &[&str],
+    rows: impl Iterator<Item = Vec<String>>,
+) -> Result<(), String> {
+    let mut out =
+        std::fs::File::create(dest).map_err(|e| format!("creare fișier: {e}"))?;
+
+    let mut write_line = |line: &str| -> Result<(), String> {
+        out.write_all(line.as_bytes())
+            .map_err(|e| format!("scriere fișier: {e}"))
+    };
+
+    let header = headers
+        .iter()
+        .map(|h| format!("\"{}\"", h.replace('"', "\"\"")))
+        .collect::<Vec<_>>()
+        .join(",");
+    write_line(&header)?;
+    write_line("\n")?;
+
+    for row in rows {
+        let line = row
+            .iter()
+            .map(|c| format!("\"{}\"", c.replace('"', "\"\"")))
+            .collect::<Vec<_>>()
+            .join(",");
+        write_line(&line)?;
+        write_line("\n")?;
+    }
+    Ok(())
+}
+
+fn export_rows_xlsx(
+    dest: &Path,
+    headers: &[&str],
+    rows: impl Iterator<Item = Vec<String>>,
+) -> Result<(), String> {
+    let mut wb = Workbook::new();
+    let ws = wb
+        .add_worksheet()
+        .set_name("Date")
+        .map_err(|e| e.to_string())?;
+    let header = Format::new()
+        .set_bold()
+        .set_font_color(0xFFFFFF)
+        .set_background_color(0x1F2937)
+        .set_border(FormatBorder::Thin)
+        .set_align(FormatAlign::Center);
+    for (j, h) in headers.iter().enumerate() {
+        ws.write_string_with_format(0, j as u16, *h, &header)
+            .map_err(|e| e.to_string())?;
+        ws.set_column_width(j as u16, 28.0)
+            .map_err(|e| e.to_string())?;
+    }
+    for (i, row) in rows.enumerate() {
+        for (j, c) in row.iter().enumerate() {
+            ws.write_string(i as u32 + 1, j as u16, c.as_str())
+                .map_err(|e| e.to_string())?;
+        }
+    }
+    wb.save(dest).map_err(|e| format!("salvare xlsx: {e}"))?;
+    Ok(())
+}
+
+fn export_rows(
+    dest: &Path,
+    format: &str,
+    headers: &[&str],
+    rows: Vec<Vec<String>>,
+) -> Result<(), String> {
+    match format {
+        "csv" => export_rows_csv(dest, headers, rows.into_iter()),
+        "xlsx" => export_rows_xlsx(dest, headers, rows.into_iter()),
+        other => Err(format!("format necunoscut: {other}")),
+    }
+}
+
+pub fn export_produse(rows: &[Produs], dest: &Path, format: &str) -> Result<(), String> {
+    export_rows(
+        dest,
+        format,
+        &["cod", "denumire", "grupa"],
+        rows.iter()
+            .map(|p| vec![p.cod.clone(), p.denumire.clone(), p.grupa.clone()])
+            .collect(),
+    )
+}
+
+pub fn export_agenti(rows: &[AgentClient], dest: &Path, format: &str) -> Result<(), String> {
+    export_rows(
+        dest,
+        format,
+        &["client", "agent"],
+        rows.iter()
+            .map(|a| vec![a.client.clone(), a.agent.clone()])
+            .collect(),
+    )
 }

@@ -31,14 +31,30 @@ pub fn init(
     Ok(db)
 }
 
+fn ensure_column(
+    conn: &Connection,
+    table: &str,
+    column: &str,
+    ddl: &str,
+) -> rusqlite::Result<()> {
+    let has: bool = conn.query_row(
+        &format!("SELECT COUNT(*) FROM pragma_table_info('{table}') WHERE name = '{column}'"),
+        [],
+        |r| r.get(0),
+    )?;
+    if !has {
+        conn.execute_batch(ddl)?;
+    }
+    Ok(())
+}
+
 fn migrate(conn: &Connection) -> rusqlite::Result<()> {
     conn.execute_batch(
         "CREATE TABLE IF NOT EXISTS produse (
-            cod TEXT PRIMARY KEY,
-            denumire TEXT,
-            grupa TEXT,
-            subgrupa TEXT
-         );
+           cod TEXT PRIMARY KEY,
+           denumire TEXT,
+           grupa TEXT
+        );
          CREATE TABLE IF NOT EXISTS agenti_clienti (
             client TEXT PRIMARY KEY,
             agent TEXT
@@ -61,6 +77,14 @@ fn migrate(conn: &Connection) -> rusqlite::Result<()> {
          DROP TABLE IF EXISTS raport_coloane;
          CREATE INDEX IF NOT EXISTS idx_produse_grupa ON produse(grupa);
          CREATE INDEX IF NOT EXISTS idx_agenti_agent ON agenti_clienti(agent);",
+    )?;
+    // Momentul la care produsul a fost adăugat în fondul de date prin butonul
+    // „Adaugă produse lipsă" — folosit pentru badge-ul „NOU" din pagina Produse.
+    ensure_column(
+        conn,
+        "produse",
+        "adaugat_la",
+        "ALTER TABLE produse ADD COLUMN adaugat_la TEXT;",
     )
 }
 

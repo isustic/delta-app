@@ -8,3 +8,7 @@ src-tauri/gen/schemas
 
 .DS_Store
 *.log
+
+# Fișierele de date sursă (xlsx din rădăcină) nu trebuie commitate;
+# seed-urile din src-tauri/resources rămân urmărite intenționat.
+/*.xlsx
