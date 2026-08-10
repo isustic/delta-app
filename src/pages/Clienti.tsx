@@ -3,6 +3,7 @@ import { open, save } from "@tauri-apps/plugin-dialog";
 import { Check, FileSpreadsheet, FileText, Pencil, Plus, Trash2, Upload, UserCheck } from "lucide-react";
 import {
   adaugaAgent,
+  adaugaAgentNou,
   deleteAgent,
   deleteAgenti,
   deleteAllAgenti,
@@ -131,6 +132,11 @@ function EditAgentModal({
             onChange={setAgent}
             options={agenti}
             placeholder="Alege agent…"
+            allowCreate
+            onCreate={async (v) => {
+              await adaugaAgentNou(v);
+              setAgenti((prev) => [...prev, v].sort((a, b) => a.localeCompare(b, "ro")));
+            }}
           />
         </Field>
       </form>
@@ -234,6 +240,11 @@ function AddAgentModal({
             onChange={setAgent}
             options={agenti}
             placeholder="Alege agent…"
+            allowCreate
+            onCreate={async (v) => {
+              await adaugaAgentNou(v);
+              setAgenti((prev) => [...prev, v].sort((a, b) => a.localeCompare(b, "ro")));
+            }}
           />
         </Field>
       </form>

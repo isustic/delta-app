@@ -74,9 +74,20 @@ fn migrate(conn: &Connection) -> rusqlite::Result<()> {
             creat_la TEXT,
             date TEXT
          );
+         CREATE TABLE IF NOT EXISTS grupe (
+            nume TEXT PRIMARY KEY
+         );
+         CREATE TABLE IF NOT EXISTS agenti (
+            nume TEXT PRIMARY KEY
+         );
          DROP TABLE IF EXISTS raport_coloane;
          CREATE INDEX IF NOT EXISTS idx_produse_grupa ON produse(grupa);
          CREATE INDEX IF NOT EXISTS idx_agenti_agent ON agenti_clienti(agent);",
+    )?;
+    // Populează tabelele de lookup din datele existente (idempotent).
+    conn.execute_batch(
+        "INSERT OR IGNORE INTO grupe (nume) SELECT DISTINCT grupa FROM produse WHERE grupa != '' AND grupa IS NOT NULL;
+         INSERT OR IGNORE INTO agenti (nume) SELECT DISTINCT agent FROM agenti_clienti WHERE agent != '' AND agent IS NOT NULL;",
     )?;
     // Momentul la care produsul a fost adăugat în fondul de date prin butonul
     // „Adaugă produse lipsă" — folosit pentru badge-ul „NOU" din pagina Produse.

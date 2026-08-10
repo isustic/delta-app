@@ -210,15 +210,28 @@ pub fn get_grupe(state: State<AppState>, search: Option<String>) -> Result<Vec<S
     let mut stmt = db
         .conn
         .prepare(
-            "SELECT DISTINCT grupa FROM produse
-             WHERE grupa != '' AND (?1 = '' OR grupa LIKE '%' || ?1 || '%')
-             ORDER BY grupa",
+            "SELECT nume FROM grupe
+             WHERE nume != '' AND (?1 = '' OR nume LIKE '%' || ?1 || '%')
+             ORDER BY nume COLLATE NOCASE",
         )
         .map_err(|e| e.to_string())?;
     let rows = stmt
         .query_map(params![search], |r| r.get::<_, String>(0))
         .map_err(|e| e.to_string())?;
     rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn adauga_grupa(state: State<AppState>, nume: String) -> Result<(), String> {
+    let nume = nume.trim().to_string();
+    if nume.is_empty() {
+        return Err("numele grupei nu poate fi gol".into());
+    }
+    let db = state.db.lock().map_err(|e| e.to_string())?;
+    db.conn
+        .execute("INSERT OR IGNORE INTO grupe (nume) VALUES (?1)", params![nume])
+        .map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 #[tauri::command]
@@ -231,15 +244,28 @@ pub fn get_agenti_distinct(
     let mut stmt = db
         .conn
         .prepare(
-            "SELECT DISTINCT agent FROM agenti_clienti
-             WHERE agent != '' AND (?1 = '' OR agent LIKE '%' || ?1 || '%')
-             ORDER BY agent",
+            "SELECT nume FROM agenti
+             WHERE nume != '' AND (?1 = '' OR nume LIKE '%' || ?1 || '%')
+             ORDER BY nume COLLATE NOCASE",
         )
         .map_err(|e| e.to_string())?;
     let rows = stmt
         .query_map(params![search], |r| r.get::<_, String>(0))
         .map_err(|e| e.to_string())?;
     rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn adauga_agent_nou(state: State<AppState>, nume: String) -> Result<(), String> {
+    let nume = nume.trim().to_string();
+    if nume.is_empty() {
+        return Err("numele agentului nu poate fi gol".into());
+    }
+    let db = state.db.lock().map_err(|e| e.to_string())?;
+    db.conn
+        .execute("INSERT OR IGNORE INTO agenti (nume) VALUES (?1)", params![nume])
+        .map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 /// Sortare + filtre pe coloane pentru lista de clienți.
@@ -425,13 +451,19 @@ pub fn adauga_produs(
     grupa: String,
 ) -> Result<(), String> {
     let db = state.db.lock().map_err(|e| e.to_string())?;
+    let grupa_t = grupa.trim().to_string();
     db.conn
         .execute(
             "INSERT INTO produse (cod, denumire, grupa) VALUES (?1, ?2, ?3)
              ON CONFLICT(cod) DO UPDATE SET denumire = ?2, grupa = ?3",
-            params![cod, denumire, grupa],
+            params![cod, denumire, grupa_t],
         )
         .map_err(|e| e.to_string())?;
+    if !grupa_t.is_empty() {
+        db.conn
+            .execute("INSERT OR IGNORE INTO grupe (nume) VALUES (?1)", params![grupa_t])
+            .map_err(|e| e.to_string())?;
+    }
     Ok(())
 }
 
@@ -483,6 +515,7 @@ pub fn adauga_produse_lipsa(
         if p.cod.trim().is_empty() || p.denumire.trim().is_empty() {
             continue;
         }
+        let grupa_t = p.grupa.trim().to_string();
         count += db
             .conn
             .execute(
@@ -491,9 +524,14 @@ pub fn adauga_produse_lipsa(
                    denumire = excluded.denumire,
                    grupa = excluded.grupa,
                    adaugat_la = excluded.adaugat_la",
-                params![p.cod.trim(), p.denumire.trim(), p.grupa.trim(), ts],
+                params![p.cod.trim(), p.denumire.trim(), grupa_t, ts],
             )
             .map_err(|e| e.to_string())?;
+        if !grupa_t.is_empty() {
+            db.conn
+                .execute("INSERT OR IGNORE INTO grupe (nume) VALUES (?1)", params![grupa_t])
+                .map_err(|e| e.to_string())?;
+        }
     }
     tx.commit().map_err(|e| e.to_string())?;
     Ok(count)
@@ -536,12 +574,18 @@ pub fn update_produs(
     grupa: String,
 ) -> Result<(), String> {
     let db = state.db.lock().map_err(|e| e.to_string())?;
+    let grupa_t = grupa.trim().to_string();
     db.conn
         .execute(
             "UPDATE produse SET denumire = ?2, grupa = ?3 WHERE cod = ?1",
-            params![cod, denumire, grupa],
+            params![cod, denumire, grupa_t],
         )
         .map_err(|e| e.to_string())?;
+    if !grupa_t.is_empty() {
+        db.conn
+            .execute("INSERT OR IGNORE INTO grupe (nume) VALUES (?1)", params![grupa_t])
+            .map_err(|e| e.to_string())?;
+    }
     Ok(())
 }
 
@@ -583,25 +627,37 @@ pub fn adauga_agent(
     agent: String,
 ) -> Result<(), String> {
     let db = state.db.lock().map_err(|e| e.to_string())?;
+    let agent_t = agent.trim().to_string();
     db.conn
         .execute(
             "INSERT INTO agenti_clienti (client, agent) VALUES (?1, ?2)
              ON CONFLICT(client) DO UPDATE SET agent = ?2",
-            params![client, agent],
+            params![client, agent_t],
         )
         .map_err(|e| e.to_string())?;
+    if !agent_t.is_empty() {
+        db.conn
+            .execute("INSERT OR IGNORE INTO agenti (nume) VALUES (?1)", params![agent_t])
+            .map_err(|e| e.to_string())?;
+    }
     Ok(())
 }
 
 #[tauri::command]
 pub fn update_agent(state: State<AppState>, client: String, agent: String) -> Result<(), String> {
     let db = state.db.lock().map_err(|e| e.to_string())?;
+    let agent_t = agent.trim().to_string();
     db.conn
         .execute(
             "UPDATE agenti_clienti SET agent = ?2 WHERE client = ?1",
-            params![client, agent],
+            params![client, agent_t],
         )
         .map_err(|e| e.to_string())?;
+    if !agent_t.is_empty() {
+        db.conn
+            .execute("INSERT OR IGNORE INTO agenti (nume) VALUES (?1)", params![agent_t])
+            .map_err(|e| e.to_string())?;
+    }
     Ok(())
 }
 

@@ -64,6 +64,12 @@ pub fn import_produse_file(conn: &Connection, path: &Path) -> Result<usize, Stri
         count += 1;
     }
 
+    tx.execute(
+        "INSERT OR IGNORE INTO grupe (nume) SELECT DISTINCT grupa FROM produse WHERE grupa != '' AND grupa IS NOT NULL",
+        [],
+    )
+    .map_err(|e| e.to_string())?;
+
     tx.commit().map_err(|e| e.to_string())?;
     Ok(count)
 }
@@ -92,6 +98,12 @@ pub fn import_agenti_file(conn: &Connection, path: &Path) -> Result<usize, Strin
         count += 1;
     }
 
+    tx.execute(
+        "INSERT OR IGNORE INTO agenti (nume) SELECT DISTINCT agent FROM agenti_clienti WHERE agent != '' AND agent IS NOT NULL",
+        [],
+    )
+    .map_err(|e| e.to_string())?;
+
     tx.commit().map_err(|e| e.to_string())?;
     Ok(count)
 }
@@ -111,7 +123,9 @@ mod tests {
         let conn = Connection::open_in_memory().unwrap();
         conn.execute_batch(
             "CREATE TABLE produse (cod TEXT PRIMARY KEY, denumire TEXT, grupa TEXT);
-             CREATE TABLE agenti_clienti (client TEXT PRIMARY KEY, agent TEXT);",
+             CREATE TABLE agenti_clienti (client TEXT PRIMARY KEY, agent TEXT);
+             CREATE TABLE grupe (nume TEXT PRIMARY KEY);
+             CREATE TABLE agenti (nume TEXT PRIMARY KEY);",
         )
         .unwrap();
         conn
