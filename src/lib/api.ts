@@ -57,8 +57,16 @@ export function getGrupe(search?: string): Promise<string[]> {
   return invoke<string[]>("get_grupe", { search });
 }
 
+export function adaugaGrupa(nume: string): Promise<void> {
+  return invoke<void>("adauga_grupa", { nume });
+}
+
 export function getAgentiDistinct(search?: string): Promise<string[]> {
   return invoke<string[]>("get_agenti_distinct", { search });
+}
+
+export function adaugaAgentNou(nume: string): Promise<void> {
+  return invoke<void>("adauga_agent_nou", { nume });
 }
 
 export function getAgenti(

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, Check, ChevronDown, ChevronLeft, ChevronRight, Download, Filter, Search, Trash2, X } from "lucide-react";
+import { AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, Check, ChevronDown, ChevronLeft, ChevronRight, Download, Filter, Plus, Search, Trash2, X } from "lucide-react";
 import type { SortState } from "../lib/usePaged";
 import { Spinner } from "./ui";
 
@@ -469,14 +469,20 @@ export function SearchableSelect({
   onChange,
   options,
   placeholder,
+  allowCreate,
+  onCreate,
 }: {
   value: string;
   onChange: (v: string) => void;
   options: string[];
   placeholder?: string;
+  /** Dacă este setat, la căutarea fără rezultate apare „Adaugă „…"" */
+  allowCreate?: boolean;
+  onCreate?: (v: string) => Promise<void> | void;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [creating, setCreating] = useState(false);
   const btnRef = useRef<HTMLButtonElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -521,6 +527,21 @@ export function SearchableSelect({
 
   const q = query.trim().toLowerCase();
   const filtered = q === "" ? options : options.filter((o) => o.toLowerCase().includes(q));
+  const trimmed = query.trim();
+  const exactMatch = options.some((o) => o.toLowerCase() === trimmed.toLowerCase());
+  const showCreate = !!allowCreate && !!onCreate && trimmed !== "" && !exactMatch;
+
+  async function handleCreate() {
+    if (!trimmed || creating || !onCreate) return;
+    setCreating(true);
+    try {
+      await onCreate(trimmed);
+      onChange(trimmed);
+      setOpen(false);
+    } finally {
+      setCreating(false);
+    }
+  }
 
   return (
     <div className="relative">
@@ -558,6 +579,12 @@ export function SearchableSelect({
                   ref={inputRef}
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && showCreate && filtered.length === 0) {
+                      e.preventDefault();
+                      handleCreate();
+                    }
+                  }}
                   placeholder="Caută…"
                   className="w-full rounded-lg border border-forest-200 bg-forest-50/50 py-1.5 pl-8 pr-2 text-sm outline-none transition placeholder:text-forest-400 focus:border-forest-500 focus:bg-white"
                 />
@@ -594,10 +621,21 @@ export function SearchableSelect({
                   </button>
                 );
               })}
-              {filtered.length === 0 && (
+              {filtered.length === 0 && !showCreate && (
                 <p className="px-3 py-4 text-center text-xs text-forest-400">
                   Nicio valoare găsită.
                 </p>
+              )}
+              {showCreate && (
+                <button
+                  type="button"
+                  disabled={creating}
+                  onClick={handleCreate}
+                  className="flex w-full items-center gap-2 border-t border-forest-100 px-3 py-2 text-left text-sm font-semibold text-forest-700 transition hover:bg-amber-50 hover:text-amber-800 disabled:opacity-60"
+                >
+                  {creating ? <Spinner /> : <Plus size={13} className="shrink-0 text-amber-600" />}
+                  Adaugă „{trimmed}"
+                </button>
               )}
             </div>
           </div>,

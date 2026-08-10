@@ -1,6 +1,6 @@
 [package]
 name = "anuara"
-version = "1.0.1"
+version = "1.0.2"
 description = "Anuara — comparative business reporting"
 authors = ["Ethics"]
 edition = "2021"

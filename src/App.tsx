@@ -334,7 +334,7 @@ export default function App() {
           {expanded && (
             <div className="mt-auto px-5 pb-5">
               <p className="whitespace-nowrap text-center text-[10px] tracking-wide text-forest-400/70">
-                v1.0.1
+                v1.0.2
               </p>
             </div>
           )}

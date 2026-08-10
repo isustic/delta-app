@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { Check, FileSpreadsheet, FileText, Package, PackagePlus, Pencil, Plus, Trash2, Upload } from "lucide-react";
 import {
+  adaugaGrupa,
   adaugaProdus,
   adaugaProduseLipsa,
   deleteAllProduse,
@@ -142,6 +143,11 @@ export function EditProdusModal({
             onChange={setGrupa}
             options={grupe}
             placeholder="Alege grupă…"
+            allowCreate
+            onCreate={async (v) => {
+              await adaugaGrupa(v);
+              setGrupe((prev) => [...prev, v].sort((a, b) => a.localeCompare(b, "ro")));
+            }}
           />
         </Field>
       </form>
@@ -257,6 +263,11 @@ export function AddProdusModal({
             onChange={setGrupa}
             options={grupe}
             placeholder="Alege grupă…"
+            allowCreate
+            onCreate={async (v) => {
+              await adaugaGrupa(v);
+              setGrupe((prev) => [...prev, v].sort((a, b) => a.localeCompare(b, "ro")));
+            }}
           />
         </Field>
       </form>
