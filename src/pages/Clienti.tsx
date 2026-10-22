@@ -17,6 +17,7 @@ import {
   getStats,
 } from "../lib/api";
 import { PAGE_SIZE, usePaged } from "../lib/usePaged";
+import { DeltaLoader } from "../components/DeltaLoader";
 import {
   ConfirmDeleteModal,
   DropdownButton,
@@ -345,6 +346,8 @@ export default function Clienti() {
       setBusy(false);
     }
   }
+
+  if (p.initialLoading) return <DeltaLoader />;
 
   return (
     <div className="flex flex-col gap-6 p-7">

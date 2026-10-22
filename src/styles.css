@@ -335,6 +335,31 @@ select:focus-visible {
   }
 }
 
+.delta-loader-halo {
+  animation: delta-loader-orbit 1.6s linear infinite;
+}
+
+.delta-loader-mark {
+  animation: delta-loader-breathe 2.2s ease-in-out infinite;
+}
+
+@keyframes delta-loader-orbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes delta-loader-breathe {
+  0%, 100% {
+    opacity: 0.65;
+    transform: scale(0.94);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

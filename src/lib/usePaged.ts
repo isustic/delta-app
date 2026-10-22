@@ -13,7 +13,8 @@ export function usePaged<T>(
   const [sort, setSort] = useState<SortState | null>(null);
   const [extra, setExtra] = useState<Record<string, string[]>>({});
   const [offset, setOffset] = useState(0);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
 
@@ -42,7 +43,10 @@ export function usePaged<T>(
         if (id !== reqId.current) return;
         setError(e instanceof Error ? e.message : String(e));
       } finally {
-        if (id === reqId.current) setLoading(false);
+        if (id === reqId.current) {
+          setLoading(false);
+          setInitialLoading(false);
+        }
       }
     },
     [fetcher],
@@ -83,6 +87,7 @@ export function usePaged<T>(
     extra,
     offset,
     loading,
+    initialLoading,
     error,
     hasMore,
     setSearch,
