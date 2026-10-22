@@ -1,13 +1,13 @@
 [package]
-name = "anuara"
+name = "delta"
 version = "1.0.2"
-description = "Anuara — comparative business reporting"
+description = "Delta — comparative business reporting"
 authors = ["Ethics"]
 edition = "2021"
 autobins = false
 
 [[bin]]
-name = "Anuara"
+name = "Delta"
 path = "src/main.rs"
 
 [lib]
@@ -23,8 +23,8 @@ tauri-plugin-dialog = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 rusqlite = { version = "0.32", features = ["bundled"] }
-calamine = "0.26"
-rust_xlsxwriter = "0.79"
+calamine = "0.37"
+rust_xlsxwriter = "0.101"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.6.4"
