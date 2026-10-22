@@ -14,6 +14,7 @@ import {
   importAgenti,
   updateAgent,
   type AgentClient,
+  getStats,
 } from "../lib/api";
 import { PAGE_SIZE, usePaged } from "../lib/usePaged";
 import {
@@ -30,7 +31,7 @@ import {
   inputCls,
   useSelection,
 } from "../components/shared";
-import { Spinner, ToastHost, useToasts, type ToastKind } from "../components/ui";
+import { Button, PageHeader, Spinner, ToastHost, useToasts, type ToastKind } from "../components/ui";
 
 function EditAgentModal({
   row,
@@ -86,31 +87,16 @@ function EditAgentModal({
       width="max-w-2xl"
       footer={
         <>
-          <button
-            type="button"
-            onClick={() => setConfirming(true)}
-            className="flex items-center gap-2 rounded-xl border border-red-200 bg-white px-3.5 py-2 text-sm font-semibold text-red-600 shadow-sm transition hover:border-red-400 hover:bg-red-50 active:scale-[0.98]"
-          >
+          <Button variant="danger" onClick={() => setConfirming(true)}>
             <Trash2 size={15} />
             Șterge
-          </button>
+          </Button>
           <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-xl border border-forest-200 bg-white px-4 py-2 text-sm font-semibold text-forest-700 transition hover:border-forest-400 hover:bg-forest-50"
-            >
-              Anulează
-            </button>
-            <button
-              type="submit"
-              form="edit-agent-form"
-              disabled={saving}
-              className="flex items-center gap-2 rounded-xl bg-forest-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-forest-700 active:scale-[0.98] disabled:opacity-50"
-            >
+            <Button onClick={onClose}>Anulează</Button>
+            <Button variant="primary" type="submit" form="edit-agent-form" disabled={saving}>
               {saving ? <Spinner /> : <Check size={15} />}
               Salvează
-            </button>
+            </Button>
           </div>
         </>
       }
@@ -199,22 +185,16 @@ function AddAgentModal({
       width="max-w-2xl"
       footer={
         <div className="ml-auto flex gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-xl border border-forest-200 bg-white px-4 py-2 text-sm font-semibold text-forest-700 transition hover:border-forest-400 hover:bg-forest-50"
-          >
-            Anulează
-          </button>
-          <button
+          <Button onClick={onClose}>Anulează</Button>
+          <Button
+            variant="primary"
             type="submit"
             form="add-agent-form"
             disabled={saving || !client.trim() || !agent.trim()}
-            className="flex items-center gap-2 rounded-xl bg-forest-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-forest-700 active:scale-[0.98] disabled:opacity-50"
           >
             {saving ? <Spinner /> : <Check size={15} />}
             Adaugă
-          </button>
+          </Button>
         </div>
       }
     >
@@ -263,9 +243,11 @@ export default function Clienti() {
   const [agenti, setAgenti] = useState<string[]>([]);
   const { toasts, push } = useToasts();
   const p = usePaged<AgentClient>(getAgenti, version);
+  const [total, setTotal] = useState<number | null>(null);
   const sel = useSelection(p.rows.map((r) => r.client));
 
   useEffect(() => {
+    getStats().then((st) => setTotal(st.agenti_clienti)).catch(() => {});
     getAgentiColoana("client").then(setClienti).catch(() => {});
     getAgentiColoana("agent").then(setAgenti).catch(() => {});
   }, [version]);
@@ -315,7 +297,7 @@ export default function Clienti() {
       const n = await deleteAllAgenti();
       push("success", `${n.toLocaleString("ro-RO")} clienți/agenți șterse.`);
       sel.clear();
-      p.setOffset(0);
+      setVersion((v) => v + 1);
       setConfirmingAll(false);
     } catch (e) {
       push("error", `Eroare la ștergere: ${e}`);
@@ -329,7 +311,7 @@ export default function Clienti() {
       push("success", `${n.toLocaleString("ro-RO")} clienți șterși.`);
       sel.clear();
       setConfirmingSel(false);
-      p.reload(p.search, p.offset);
+      setVersion((v) => v + 1);
     } catch (e) {
       push("error", `Eroare la ștergere: ${e}`);
       throw e;
@@ -366,59 +348,45 @@ export default function Clienti() {
 
   return (
     <div className="flex flex-col gap-6 p-7">
-      <div className="animate-fade-up flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-amber-600">
-            Fondul de date
-          </p>
-          <h2 className="font-display text-3xl font-semibold tracking-tight text-forest-950">
-            Clienți
-          </h2>
-          <p className="mt-1 text-sm text-forest-600">
-            Clienți → Agent — cine gestionează fiecare client.
-          </p>
-        </div>
-        <div className="flex gap-2.5">
-          <button
-            type="button"
-            onClick={() => setAdding(true)}
-            className="flex items-center gap-2 rounded-xl bg-forest-800 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-forest-700 active:scale-[0.98]"
-          >
-            <Plus size={16} />
-            Adaugă client
-          </button>
-          <DropdownButton
-            label="Importă / Exportă"
-            disabled={busy}
-            icon={busy ? <Spinner /> : <Upload size={16} />}
-            items={[
-              { label: "Importă clienți", icon: <Upload size={14} />, onSelect: doImport },
-              { divider: true },
-              { label: "Exportă Excel (.xlsx)", icon: <FileSpreadsheet size={14} />, onSelect: () => doExport("xlsx") },
-              { label: "Exportă CSV (.csv)", icon: <FileText size={14} />, onSelect: () => doExport("csv") },
-            ]}
-          />
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Fondul de date"
+        title="Clienți"
+        description="Clienți → Agent. Cine gestionează fiecare client."
+        actions={
+          <>
+            <Button variant="primary" size="lg" className="rounded-card shadow-elev-4" onClick={() => setAdding(true)}>
+              <Plus size={16} />
+              Adaugă client
+            </Button>
+            <DropdownButton
+              label="Importă / Exportă"
+              disabled={busy}
+              icon={busy ? <Spinner /> : <Upload size={16} />}
+              items={[
+                { label: "Importă clienți", icon: <Upload size={14} />, onSelect: doImport },
+                { divider: true },
+                { label: "Exportă Excel (.xlsx)", icon: <FileSpreadsheet size={14} />, onSelect: () => doExport("xlsx") },
+                { label: "Exportă CSV (.csv)", icon: <FileText size={14} />, onSelect: () => doExport("csv") },
+                { divider: true },
+                { label: "Șterge tot", icon: <Trash2 size={14} />, danger: true, onSelect: () => setConfirmingAll(true) },
+              ]}
+            />
+          </>
+        }
+      />
 
       <TableCard
-        icon={<UserCheck size={17} />}
-        title="Clienți → Agent"
-        subtitle="apasă pe un rând pentru a-l edita"
         search={p.search}
         onSearch={p.setSearch}
+        summary={
+          total === null
+            ? null
+            : p.search.trim() && p.offset === 0 && !p.hasMore
+              ? `${p.rows.length.toLocaleString("ro-RO")} din ${total.toLocaleString("ro-RO")} clienți`
+              : `${total.toLocaleString("ro-RO")} clienți`
+        }
         placeholder="client sau agent"
         error={p.error}
-        actions={
-          <button
-            type="button"
-            title="Șterge tot"
-            onClick={() => setConfirmingAll(true)}
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-forest-200 bg-white text-red-400 transition hover:border-red-300 hover:bg-red-50 hover:text-red-600 active:scale-[0.98]"
-          >
-            <Trash2 size={15} />
-          </button>
-        }
         footer={
           <Pagination
             offset={p.offset}
@@ -439,7 +407,7 @@ export default function Clienti() {
         }
       >
         <table className="w-full text-left text-sm">
-          <thead className="sticky top-0 z-10 bg-forest-50 text-[11px] uppercase tracking-wide text-forest-500">
+          <thead className="sticky top-0 z-10 bg-subtle text-label text-fg-3">
             <tr>
               <th className="w-10 px-3 py-2.5">
                 <SelectionCheckbox
@@ -477,12 +445,12 @@ export default function Clienti() {
               <th className="w-12 px-3 py-2.5" />
             </tr>
           </thead>
-          <tbody className="divide-y divide-forest-50">
+          <tbody className="divide-y divide-subtle">
             {p.rows.map((r) => (
               <tr
                 key={r.client}
                 onClick={() => setEditing(r)}
-                className="group cursor-pointer transition-colors hover:bg-forest-50/60"
+                className="group cursor-pointer transition-colors hover:bg-subtle/60"
               >
                 <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
                   <SelectionCheckbox
@@ -490,19 +458,19 @@ export default function Clienti() {
                     onChange={() => sel.toggle(r.client)}
                   />
                 </td>
-                <td className="px-5 py-2 font-medium text-forest-900">{r.client}</td>
-                <td className="px-4 py-2 text-forest-600">{r.agent}</td>
+                <td className="px-5 py-2 font-medium text-fg">{r.client}</td>
+                <td className="px-4 py-2 text-fg-2">{r.agent}</td>
                 <td className="px-3 py-2 text-right">
                   <Pencil
                     size={14}
-                    className="ml-auto text-forest-300 opacity-0 transition group-hover:opacity-100 group-hover:text-forest-500"
+                    className="ml-auto text-fg-3 opacity-0 transition group-hover:opacity-100 group-hover:text-fg-3"
                   />
                 </td>
               </tr>
             ))}
             {p.rows.length === 0 && !p.loading && (
               <tr>
-                <td colSpan={4} className="px-5 py-10 text-center text-sm text-forest-400">
+                <td colSpan={4} className="px-5 py-10 text-center text-sm text-fg-3">
                   Nicio înregistrare găsită.
                 </td>
               </tr>
@@ -522,7 +490,7 @@ export default function Clienti() {
         <EditAgentModal
           row={editing}
           push={push}
-          onChanged={() => p.reload(p.search, p.offset)}
+          onChanged={() => setVersion((v) => v + 1)}
           onClose={() => setEditing(null)}
         />
       )}
@@ -530,7 +498,7 @@ export default function Clienti() {
       {adding && (
         <AddAgentModal
           push={push}
-          onChanged={() => p.reload(p.search, 0)}
+          onChanged={() => setVersion((v) => v + 1)}
           onClose={() => setAdding(false)}
         />
       )}

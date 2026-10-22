@@ -16,6 +16,7 @@ import {
   importProduse,
   updateProdus,
   type Produs,
+  getStats,
 } from "../lib/api";
 import { PAGE_SIZE, usePaged } from "../lib/usePaged";
 import {
@@ -32,7 +33,7 @@ import {
   inputCls,
   useSelection,
 } from "../components/shared";
-import { Spinner, ToastHost, useToasts, type ToastKind } from "../components/ui";
+import { Button, PageHeader, Spinner, ToastHost, useToasts, type ToastKind } from "../components/ui";
 
 export function EditProdusModal({
   row,
@@ -89,31 +90,16 @@ export function EditProdusModal({
       width="max-w-2xl"
       footer={
         <>
-          <button
-            type="button"
-            onClick={() => setConfirming(true)}
-            className="flex items-center gap-2 rounded-xl border border-red-200 bg-white px-3.5 py-2 text-sm font-semibold text-red-600 shadow-sm transition hover:border-red-400 hover:bg-red-50 active:scale-[0.98]"
-          >
+          <Button variant="danger" onClick={() => setConfirming(true)}>
             <Trash2 size={15} />
             Șterge
-          </button>
+          </Button>
           <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-xl border border-forest-200 bg-white px-4 py-2 text-sm font-semibold text-forest-700 transition hover:border-forest-400 hover:bg-forest-50"
-            >
-              Anulează
-            </button>
-            <button
-              type="submit"
-              form="edit-produs-form"
-              disabled={saving}
-              className="flex items-center gap-2 rounded-xl bg-forest-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-forest-700 active:scale-[0.98] disabled:opacity-50"
-            >
+            <Button onClick={onClose}>Anulează</Button>
+            <Button variant="primary" type="submit" form="edit-produs-form" disabled={saving}>
               {saving ? <Spinner /> : <Check size={15} />}
               Salvează
-            </button>
+            </Button>
           </div>
         </>
       }
@@ -215,22 +201,16 @@ export function AddProdusModal({
       width="max-w-2xl"
       footer={
         <div className="ml-auto flex gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-xl border border-forest-200 bg-white px-4 py-2 text-sm font-semibold text-forest-700 transition hover:border-forest-400 hover:bg-forest-50"
-          >
-            Anulează
-          </button>
-          <button
+          <Button onClick={onClose}>Anulează</Button>
+          <Button
+            variant="primary"
             type="submit"
             form="add-produs-form"
             disabled={saving || !cod.trim() || !denumire.trim()}
-            className="flex items-center gap-2 rounded-xl bg-forest-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-forest-700 active:scale-[0.98] disabled:opacity-50"
           >
             {saving ? <Spinner /> : <Check size={15} />}
             Adaugă
-          </button>
+          </Button>
         </div>
       }
     >
@@ -313,7 +293,12 @@ export function LipsaProduseModal({
   async function addSelected() {
     setSaving(true);
     try {
-      const chosen = items.filter((p) => selected.has(p.cod));
+      const chosen = items.filter((p) => selected.has(p.cod) && p.cod.trim() && p.denumire.trim());
+      if (chosen.length !== selected.size) {
+        push("error", "Produsele selectate trebuie să aibă cod și denumire. Completează-le individual.");
+        setSaving(false);
+        return;
+      }
       const n = await adaugaProduseLipsa(chosen, year);
       push("success", `${n.toLocaleString("ro-RO")} produse adăugate.`);
       onAdded(chosen.map((p) => p.cod));
@@ -334,53 +319,46 @@ export function LipsaProduseModal({
       width="max-w-3xl"
       footer={
         <div className="flex items-center gap-3">
-          <span className="text-[11px] text-forest-500">
+          <span className="text-label text-fg-3">
             Produsele vor fi marcate ca „NOU" în fondul de date.
           </span>
           <div className="ml-auto flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-xl border border-forest-200 bg-white px-4 py-2 text-sm font-semibold text-forest-700 transition hover:border-forest-400 hover:bg-forest-50"
-            >
-              Anulează
-            </button>
-            <button
-              type="button"
+            <Button onClick={onClose}>Anulează</Button>
+            <Button
+              variant="primary"
               onClick={addSelected}
               disabled={saving || selected.size === 0 || !anOk}
-              className="flex items-center gap-2 rounded-xl bg-forest-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-forest-700 active:scale-[0.98] disabled:opacity-50"
             >
               {saving ? <Spinner /> : <PackagePlus size={15} />}
               Adaugă selectate ({selected.size.toLocaleString("ro-RO")})
-            </button>
+            </Button>
           </div>
         </div>
       }
     >
       <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-4">
-          <label className="flex items-center gap-2 text-sm text-forest-700">
+          <label className="flex items-center gap-2 text-sm text-fg-2">
             Marchează cu anul
             <input
               value={year}
               onChange={(e) => onYear(e.target.value.replace(/\D/g, "").slice(0, 4))}
-              className={`${inputCls} w-24 font-mono ${anOk ? "" : "border-red-300 focus:border-red-400 focus:ring-red-400/15"}`}
+              className={`${inputCls} w-24 font-mono ${anOk ? "" : "border-danger focus:border-danger focus:ring-danger/15"}`}
             />
           </label>
-          <label className="flex cursor-pointer select-none items-center gap-1.5 text-xs font-semibold text-forest-600 transition hover:text-forest-800">
+          <label className="flex cursor-pointer select-none items-center gap-1.5 text-xs font-semibold text-fg-2 transition hover:text-fg">
             <input
               type="checkbox"
               checked={allSelected}
               onChange={toggleAll}
-              className="accent-forest-700"
+              className="accent-accent"
             />
             {allSelected ? "Deselectează toate" : "Selectează toate"}
           </label>
         </div>
-        <div className="max-h-80 overflow-auto rounded-xl border border-forest-100">
+        <div className="max-h-80 overflow-auto rounded-card border border-stroke">
           <table className="w-full text-left text-sm">
-            <thead className="sticky top-0 z-10 bg-forest-50 text-[11px] uppercase tracking-wide text-forest-500">
+            <thead className="sticky top-0 z-10 bg-subtle text-xs text-fg-3">
               <tr>
                 <th className="w-10 px-4 py-2" />
                 <th className="px-4 py-2 font-semibold">Cod</th>
@@ -388,13 +366,13 @@ export function LipsaProduseModal({
                 <th className="px-4 py-2 font-semibold">Grupă</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-forest-50">
+            <tbody className="divide-y divide-subtle">
               {items.map((p) => (
                 <tr
                   key={p.cod}
                   onClick={() => toggle(p.cod)}
                   className={`cursor-pointer transition-colors ${
-                    selected.has(p.cod) ? "bg-amber-50/60" : "hover:bg-forest-50/60"
+                    selected.has(p.cod) ? "bg-accent-subtle/60" : "hover:bg-subtle/60"
                   }`}
                 >
                   <td className="px-4 py-1.5" onClick={(e) => e.stopPropagation()}>
@@ -402,13 +380,13 @@ export function LipsaProduseModal({
                       type="checkbox"
                       checked={selected.has(p.cod)}
                       onChange={() => toggle(p.cod)}
-                      className="accent-forest-700"
+                      className="accent-accent"
                     />
                   </td>
-                  <td className="num px-4 py-1.5 font-mono text-xs text-forest-700">{p.cod}</td>
-                  <td className="px-4 py-1.5 text-forest-900">{p.denumire}</td>
+                  <td className="num px-4 py-1.5 font-mono text-xs text-fg-2">{p.cod}</td>
+                  <td className="px-4 py-1.5 text-fg">{p.denumire}</td>
                   <td className="px-4 py-1.5">
-                    <span className="inline-block rounded-full bg-forest-100 px-2.5 py-0.5 text-xs font-semibold text-forest-700">
+                    <span className="inline-block rounded-full bg-subtle px-2.5 py-0.5 text-xs font-semibold text-fg-2">
                       {p.grupa}
                     </span>
                   </td>
@@ -434,9 +412,11 @@ export default function Produse() {
   const [grupe, setGrupe] = useState<string[]>([]);
   const { toasts, push } = useToasts();
   const p = usePaged<Produs>(getProduse, version);
+  const [total, setTotal] = useState<number | null>(null);
   const sel = useSelection(p.rows.map((r) => r.cod));
 
   useEffect(() => {
+    getStats().then((st) => setTotal(st.produse)).catch(() => {});
     getProduseColoana("cod").then(setCoduri).catch(() => {});
     getProduseColoana("denumire").then(setDenumiri).catch(() => {});
     getProduseColoana("grupa").then(setGrupe).catch(() => {});
@@ -487,7 +467,7 @@ export default function Produse() {
       const n = await deleteAllProduse();
       push("success", `${n.toLocaleString("ro-RO")} produse șterse.`);
       sel.clear();
-      p.setOffset(0);
+      setVersion((v) => v + 1);
       setConfirmingAll(false);
     } catch (e) {
       push("error", `Eroare la ștergere: ${e}`);
@@ -501,7 +481,7 @@ export default function Produse() {
       push("success", `${n.toLocaleString("ro-RO")} produse șterse.`);
       sel.clear();
       setConfirmingSel(false);
-      p.reload(p.search, p.offset);
+      setVersion((v) => v + 1);
     } catch (e) {
       push("error", `Eroare la ștergere: ${e}`);
       throw e;
@@ -538,59 +518,45 @@ export default function Produse() {
 
   return (
     <div className="flex flex-col gap-6 p-7">
-      <div className="animate-fade-up flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-amber-600">
-            Fondul de date
-          </p>
-          <h2 className="font-display text-3xl font-semibold tracking-tight text-forest-950">
-            Produse
-          </h2>
-          <p className="mt-1 text-sm text-forest-600">
-            Produse (cod → grupă) — datele folosite la generarea rapoartelor.
-          </p>
-        </div>
-        <div className="flex gap-2.5">
-          <button
-            type="button"
-            onClick={() => setAdding(true)}
-            className="flex items-center gap-2 rounded-xl bg-forest-800 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-forest-700 active:scale-[0.98]"
-          >
-            <Plus size={16} />
-            Adaugă produs
-          </button>
-          <DropdownButton
-            label="Importă / Exportă"
-            disabled={busy}
-            icon={busy ? <Spinner /> : <Upload size={16} />}
-            items={[
-              { label: "Importă produse", icon: <Upload size={14} />, onSelect: doImport },
-              { divider: true },
-              { label: "Exportă Excel (.xlsx)", icon: <FileSpreadsheet size={14} />, onSelect: () => doExport("xlsx") },
-              { label: "Exportă CSV (.csv)", icon: <FileText size={14} />, onSelect: () => doExport("csv") },
-            ]}
-          />
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Fondul de date"
+        title="Produse"
+        description="Cod → grupă. Datele folosite la generarea rapoartelor."
+        actions={
+          <>
+            <Button variant="primary" size="lg" className="rounded-card shadow-elev-4" onClick={() => setAdding(true)}>
+              <Plus size={16} />
+              Adaugă produs
+            </Button>
+            <DropdownButton
+              label="Importă / Exportă"
+              disabled={busy}
+              icon={busy ? <Spinner /> : <Upload size={16} />}
+              items={[
+                { label: "Importă produse", icon: <Upload size={14} />, onSelect: doImport },
+                { divider: true },
+                { label: "Exportă Excel (.xlsx)", icon: <FileSpreadsheet size={14} />, onSelect: () => doExport("xlsx") },
+                { label: "Exportă CSV (.csv)", icon: <FileText size={14} />, onSelect: () => doExport("csv") },
+                { divider: true },
+                { label: "Șterge tot", icon: <Trash2 size={14} />, danger: true, onSelect: () => setConfirmingAll(true) },
+              ]}
+            />
+          </>
+        }
+      />
 
       <TableCard
-        icon={<Package size={17} />}
-        title="Produse (cod → grupă)"
-        subtitle="apasă pe un rând pentru a-l edita"
         search={p.search}
         onSearch={p.setSearch}
+        summary={
+          total === null
+            ? null
+            : p.search.trim() && p.offset === 0 && !p.hasMore
+              ? `${p.rows.length.toLocaleString("ro-RO")} din ${total.toLocaleString("ro-RO")} produse`
+              : `${total.toLocaleString("ro-RO")} produse`
+        }
         placeholder="cod, denumire sau grupă"
         error={p.error}
-        actions={
-          <button
-            type="button"
-            title="Șterge tot"
-            onClick={() => setConfirmingAll(true)}
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-forest-200 bg-white text-red-400 transition hover:border-red-300 hover:bg-red-50 hover:text-red-600 active:scale-[0.98]"
-          >
-            <Trash2 size={15} />
-          </button>
-        }
         footer={
           <Pagination
             offset={p.offset}
@@ -611,7 +577,7 @@ export default function Produse() {
         }
       >
         <table className="w-full text-left text-sm">
-          <thead className="sticky top-0 z-10 bg-forest-50 text-[11px] uppercase tracking-wide text-forest-500">
+          <thead className="sticky top-0 z-10 bg-subtle text-label text-fg-3">
             <tr>
               <th className="w-10 px-3 py-2.5">
                 <SelectionCheckbox
@@ -662,12 +628,12 @@ export default function Produse() {
               <th className="w-12 px-3 py-2.5" />
             </tr>
           </thead>
-          <tbody className="divide-y divide-forest-50">
+          <tbody className="divide-y divide-subtle">
             {p.rows.map((r) => (
               <tr
                 key={r.cod}
                 onClick={() => setEditing(r)}
-                className="group cursor-pointer transition-colors hover:bg-forest-50/60"
+                className="group cursor-pointer transition-colors hover:bg-subtle/60"
               >
                 <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
                   <SelectionCheckbox
@@ -675,14 +641,14 @@ export default function Produse() {
                     onChange={() => sel.toggle(r.cod)}
                   />
                 </td>
-                <td className="num px-5 py-2 font-mono text-xs text-forest-700">{r.cod}</td>
+                <td className="num px-5 py-2 font-mono text-xs text-fg-2">{r.cod}</td>
                 <td className="px-4 py-2">
                   <span className="flex items-center gap-1.5">
-                    <span className="text-forest-900">{r.denumire}</span>
+                    <span className="text-fg">{r.denumire}</span>
                     {r.adaugat_la && (
                       <span
                         title={`Adăugat: ${r.adaugat_la}`}
-                        className="rounded-full bg-forest-600 px-1.5 py-px text-[9px] font-bold uppercase tracking-wide text-white"
+                        className="rounded-full bg-accent px-1.5 py-px text-label font-semibold text-on-accent"
                       >
                         Nou
                       </span>
@@ -690,21 +656,21 @@ export default function Produse() {
                   </span>
                 </td>
                 <td className="px-4 py-2">
-                  <span className="inline-block rounded-full bg-forest-100 px-2.5 py-0.5 text-xs font-semibold text-forest-700">
+                  <span className="inline-block rounded-full bg-subtle px-2.5 py-0.5 text-xs font-semibold text-fg-2">
                     {r.grupa}
                   </span>
                 </td>
                 <td className="px-3 py-2 text-right">
                   <Pencil
                     size={14}
-                    className="ml-auto text-forest-300 opacity-0 transition group-hover:opacity-100 group-hover:text-forest-500"
+                    className="ml-auto text-fg-3 opacity-0 transition group-hover:opacity-100 group-hover:text-fg-3"
                   />
                 </td>
               </tr>
             ))}
             {p.rows.length === 0 && !p.loading && (
               <tr>
-                <td colSpan={5} className="px-5 py-10 text-center text-sm text-forest-400">
+                <td colSpan={5} className="px-5 py-10 text-center text-sm text-fg-3">
                   Nicio înregistrare găsită.
                 </td>
               </tr>
@@ -724,7 +690,7 @@ export default function Produse() {
         <EditProdusModal
           row={editing}
           push={push}
-          onChanged={() => p.reload(p.search, p.offset)}
+          onChanged={() => setVersion((v) => v + 1)}
           onClose={() => setEditing(null)}
         />
       )}
@@ -732,7 +698,7 @@ export default function Produse() {
       {adding && (
         <AddProdusModal
           push={push}
-          onChanged={() => p.reload(p.search, 0)}
+          onChanged={() => setVersion((v) => v + 1)}
           onClose={() => setAdding(false)}
         />
       )}

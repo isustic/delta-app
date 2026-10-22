@@ -55,6 +55,8 @@ fn resolve_resource(app: &AppHandle, rel: &str) -> Option<PathBuf> {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .setup(|app| {
             #[cfg(target_os = "macos")]
             set_macos_dock_icon();
@@ -110,6 +112,7 @@ pub fn run() {
             commands::lista_rapoarte,
             commands::incarca_raport,
             commands::sterge_raport,
+            commands::system_look,
         ])
         .run(tauri::generate_context!())
         .expect("eroare la pornirea aplicației");

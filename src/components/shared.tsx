@@ -85,7 +85,7 @@ export function SelectionCheckbox({
       checked={checked}
       onChange={onChange}
       title={title}
-      className="accent-forest-700"
+      className="accent-accent"
     />
   );
 }
@@ -104,8 +104,8 @@ export function SelectionToolbar({
 }) {
   if (count === 0) return null;
   return (
-    <div className="flex flex-wrap items-center gap-2 border-t border-amber-200 bg-amber-50/70 px-5 py-2.5">
-      <span className="text-sm font-semibold text-amber-800">
+    <div className="flex flex-wrap items-center gap-2 border-t border-stroke bg-subtle px-5 py-2.5">
+      <span className="text-sm font-semibold text-accent-fg">
         {count.toLocaleString("ro-RO")} selectat{count === 1 ? "" : "e"}
       </span>
       <div className="ml-auto flex gap-2">
@@ -113,7 +113,7 @@ export function SelectionToolbar({
           type="button"
           onClick={onExport}
           disabled={busy}
-          className="flex items-center gap-1.5 rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-800 transition hover:border-amber-400 hover:bg-amber-100 disabled:opacity-50"
+          className="flex items-center gap-1.5 rounded-control border border-stroke bg-card px-3 py-1.5 text-xs font-semibold text-accent-fg transition hover:bg-hover disabled:opacity-50"
         >
           <Download size={13} />
           Exportă selectate
@@ -122,7 +122,7 @@ export function SelectionToolbar({
           type="button"
           onClick={onDelete}
           disabled={busy}
-          className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-600 transition hover:border-red-300 hover:bg-red-50 disabled:opacity-50"
+          className="flex items-center gap-1.5 rounded-control border border-danger-bg bg-card px-3 py-1.5 text-xs font-semibold text-danger transition hover:border-danger hover:bg-danger-bg disabled:opacity-50"
         >
           <Trash2 size={13} />
           Șterge selectate
@@ -133,7 +133,7 @@ export function SelectionToolbar({
 }
 
 export const inputCls =
-  "w-full rounded-lg border border-forest-200 bg-forest-50/50 px-3 py-2 text-sm text-forest-900 outline-none transition placeholder:text-forest-400 focus:border-forest-500 focus:bg-white focus:ring-2 focus:ring-forest-500/15 disabled:cursor-not-allowed disabled:opacity-60";
+  "w-full rounded-control border border-stroke-control bg-card px-3 py-1.5 text-sm text-fg outline-none transition placeholder:text-fg-3 focus:border-accent disabled:cursor-not-allowed disabled:opacity-60";
 
 export function Field({
   label,
@@ -146,11 +146,11 @@ export function Field({
 }) {
   return (
     <label className="flex flex-col gap-1.5">
-      <span className="text-[11px] font-bold uppercase tracking-wider text-forest-500">
+      <span className="text-xs font-semibold text-fg-2">
         {label}
       </span>
       {children}
-      {hint && <span className="text-[11px] text-forest-400">{hint}</span>}
+      {hint && <span className="text-xs text-fg-3">{hint}</span>}
     </label>
   );
 }
@@ -187,7 +187,7 @@ export function Modal({
   return (
     <div
       ref={backdropRef}
-      className="animate-fade-in fixed inset-0 z-50 flex items-center justify-center bg-forest-950/50 p-4 backdrop-blur-sm"
+      className="animate-fade-in fixed inset-0 z-50 flex items-center justify-center bg-scrim p-4 backdrop-blur-sm"
       onMouseDown={(e) => {
         pressedOnBackdrop.current = e.target === backdropRef.current;
         if (pressedOnBackdrop.current) {
@@ -199,25 +199,25 @@ export function Modal({
       }}
     >
       <div
-        className={`animate-modal-in w-full ${width} overflow-hidden rounded-2xl bg-white shadow-2xl`}
+        className={`animate-modal-in w-full ${width} overflow-hidden rounded-card bg-card shadow-elev-28`}
       >
-        <div className="flex items-center justify-between border-b border-forest-100 px-5 py-4">
+        <div className="flex items-center justify-between border-b border-stroke px-5 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-forest-50 text-forest-600">
+            <div className="flex h-9 w-9 items-center justify-center rounded-control bg-subtle text-fg-2">
               {icon}
             </div>
-            <h3 className="font-display text-base font-semibold text-forest-900">{title}</h3>
+            <h3 className="font-sans text-base font-semibold text-fg">{title}</h3>
           </div>
           <button
             onClick={onClose}
-            className="rounded-lg p-1.5 text-forest-400 transition hover:bg-forest-50 hover:text-forest-700"
+            className="rounded-control p-1.5 text-fg-3 transition hover:bg-subtle hover:text-fg-2"
           >
             <X size={16} />
           </button>
         </div>
         <div className="px-5 py-4">{children}</div>
         {footer && (
-          <div className="flex items-center justify-between gap-2 border-t border-forest-100 bg-forest-50/60 px-5 py-3.5">
+          <div className="flex items-center justify-between gap-2 border-t border-stroke bg-subtle/60 px-5 py-3.5">
             {footer}
           </div>
         )}
@@ -271,39 +271,39 @@ export function ConfirmDeleteModal({
 
   return (
     <div
-      className="animate-fade-in fixed inset-0 z-[60] flex items-center justify-center bg-forest-950/50 p-4 backdrop-blur-sm"
+      className="animate-fade-in fixed inset-0 z-[60] flex items-center justify-center bg-scrim p-4 backdrop-blur-sm"
       onClick={() => !busy && onClose()}
     >
       <div
-        className="animate-modal-in w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-2xl"
+        className="animate-modal-in w-full max-w-sm overflow-hidden rounded-card bg-card shadow-elev-28"
         onClick={(e) => e.stopPropagation()}
         role="alertdialog"
         aria-modal="true"
       >
-        <div className="h-1.5 bg-gradient-to-r from-red-600 via-red-400 to-amber-400" />
+        <div className="h-1.5 bg-danger" />
         <div className="px-6 pb-5 pt-7 text-center">
           <div className="relative mx-auto flex h-14 w-14 items-center justify-center">
-            <span className="animate-gen-pulse absolute inset-0 rounded-full bg-red-500/15" />
-            <div className="relative flex h-14 w-14 items-center justify-center rounded-full border border-red-100 bg-red-50 text-red-600">
+            <span className="animate-gen-pulse absolute inset-0 rounded-full bg-danger/15" />
+            <div className="relative flex h-14 w-14 items-center justify-center rounded-full border border-danger-bg bg-danger-bg text-danger">
               <Trash2 size={22} />
             </div>
           </div>
-          <h3 className="mt-4 font-display text-xl font-semibold tracking-tight text-forest-950">
+          <h3 className="mt-4 font-sans text-xl font-semibold tracking-tight text-fg">
             {title}
           </h3>
-          <p className="mt-1.5 text-sm leading-relaxed text-forest-600">{description}</p>
+          <p className="mt-1.5 text-sm leading-relaxed text-fg-2">{description}</p>
           {entity && (
-            <div className="mt-3.5 inline-flex max-w-full items-center gap-2 rounded-lg border border-red-100 bg-red-50/70 px-3 py-1.5">
-              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-red-500" />
-              <span className="truncate font-mono text-xs font-semibold text-red-700">
+            <div className="mt-3.5 inline-flex max-w-full items-center gap-2 rounded-control border border-danger-bg bg-danger-bg/70 px-3 py-1.5">
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-danger" />
+              <span className="truncate font-mono text-xs font-semibold text-danger">
                 {entity}
               </span>
             </div>
           )}
         </div>
-        <div className="flex items-center gap-2 border-t border-forest-100 bg-forest-50/60 px-5 py-3.5">
-          <p className="mr-auto flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-forest-400">
-            <AlertTriangle size={12} className="text-amber-500" />
+        <div className="flex items-center gap-2 border-t border-stroke bg-subtle/60 px-5 py-3.5">
+          <p className="mr-auto flex items-center gap-1.5 text-xs font-semibold text-fg-3">
+            <AlertTriangle size={12} className="text-accent-fg" />
             Ireversibil
           </p>
           <button
@@ -311,7 +311,7 @@ export function ConfirmDeleteModal({
             autoFocus
             onClick={onClose}
             disabled={busy}
-            className="rounded-xl border border-forest-200 bg-white px-4 py-2 text-sm font-semibold text-forest-700 transition hover:border-forest-400 hover:bg-forest-50 disabled:opacity-50"
+            className="rounded-control border border-stroke bg-card px-4 py-2 text-sm font-semibold text-fg-2 transition hover:border-stroke-control hover:bg-subtle disabled:opacity-50"
           >
             Anulează
           </button>
@@ -319,7 +319,7 @@ export function ConfirmDeleteModal({
             type="button"
             onClick={confirma}
             disabled={busy}
-            className="flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-red-500 active:scale-[0.98] disabled:opacity-60"
+            className="flex items-center gap-2 rounded-card bg-danger px-4 py-2 text-sm font-semibold text-on-accent shadow-elev-4 transition hover:bg-danger disabled:opacity-60"
           >
             {busy ? <Spinner /> : <Trash2 size={15} />}
             {busy ? busyLabel : confirmLabel}
@@ -339,18 +339,57 @@ export function SearchInput({
   onChange: (v: string) => void;
   placeholder: string;
 }) {
+  const ref = useRef<HTMLInputElement>(null);
+
+  // Ctrl/Cmd+K mută focusul pe căutare.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        ref.current?.focus();
+        ref.current?.select();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   return (
-    <div className="relative">
+    <div className="relative w-full max-w-md">
       <Search
         size={15}
-        className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-forest-400"
+        className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-3"
       />
       <input
+        ref={ref}
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Escape" && value) {
+            e.stopPropagation();
+            onChange("");
+          }
+        }}
         placeholder={placeholder}
-        className="w-80 rounded-lg border border-forest-200 bg-forest-50/50 py-2 pl-9 pr-3 text-sm outline-none transition placeholder:text-forest-400 focus:border-forest-500 focus:bg-white focus:ring-2 focus:ring-forest-500/15"
+        className="w-full rounded-control border border-stroke-control bg-card py-1.5 pl-9 pr-16 text-sm outline-none transition placeholder:text-fg-3 focus:border-accent"
       />
+      {value ? (
+        <button
+          type="button"
+          title="Șterge căutarea"
+          onClick={() => {
+            onChange("");
+            ref.current?.focus();
+          }}
+          className="absolute right-1.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-control text-fg-3 transition hover:bg-hover hover:text-fg"
+        >
+          <X size={14} />
+        </button>
+      ) : (
+        <kbd className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 rounded border border-stroke bg-subtle px-1.5 py-0.5 font-sans text-[10px] font-medium text-fg-3">
+          Ctrl K
+        </kbd>
+      )}
     </div>
   );
 }
@@ -364,7 +403,7 @@ export function DropdownButton({
 }: {
   label: string;
   icon?: ReactNode;
-  items: ({ label: string; icon?: ReactNode; onSelect: () => void } | { divider: true })[];
+  items: ({ label: string; icon?: ReactNode; onSelect: () => void; danger?: boolean } | { divider: true })[];
   disabled?: boolean;
   align?: "left" | "right";
 }) {
@@ -418,13 +457,13 @@ export function DropdownButton({
         onClick={toggle}
         aria-haspopup="menu"
         aria-expanded={open}
-        className="group flex items-center gap-2 rounded-xl border border-forest-200 bg-white px-4 py-2.5 text-sm font-semibold text-forest-800 shadow-sm transition hover:border-forest-400 hover:shadow active:scale-[0.98] disabled:opacity-50"
+        className="group flex items-center gap-2 rounded-card border border-stroke bg-card px-4 py-2.5 text-sm font-semibold text-fg shadow-elev-4 transition hover:border-stroke-control hover:shadow disabled:opacity-50"
       >
-        {icon && <span className="text-forest-500 transition group-hover:text-amber-600">{icon}</span>}
+        {icon && <span className="text-fg-3 transition group-hover:text-accent-fg">{icon}</span>}
         {label}
         <ChevronDown
           size={14}
-          className={`text-forest-400 transition ${open ? "rotate-180" : ""}`}
+          className={`text-fg-3 transition ${open ? "rotate-180" : ""}`}
         />
       </button>
       {open &&
@@ -434,13 +473,13 @@ export function DropdownButton({
             ref={menuRef}
             role="menu"
             style={{ top: pos.top, left: pos.left }}
-            className={`animate-fade-in fixed z-[100] min-w-[13rem] translate-y-0 overflow-hidden rounded-xl border border-forest-100 bg-white py-1 shadow-2xl ${
+            className={`animate-fade-in fixed z-[100] min-w-[13rem] translate-y-0 overflow-hidden rounded-card border border-stroke bg-card py-1 shadow-elev-28 ${
               align === "right" ? "-translate-x-full" : ""
             }`}
           >
             {items.map((it, i) =>
               "divider" in it ? (
-                <div key={`d${i}`} className="my-1 h-px bg-forest-100" />
+                <div key={`d${i}`} className="my-1 h-px bg-subtle" />
               ) : (
                 <button
                   key={it.label}
@@ -450,9 +489,13 @@ export function DropdownButton({
                     setOpen(false);
                     it.onSelect();
                   }}
-                  className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-sm font-medium text-forest-700 transition hover:bg-forest-50 hover:text-forest-900"
+                  className={`flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-sm font-medium transition ${
+                    it.danger
+                      ? "text-danger hover:bg-danger-bg"
+                      : "text-fg-2 hover:bg-subtle hover:text-fg"
+                  }`}
                 >
-                  {it.icon && <span className="text-forest-400">{it.icon}</span>}
+                  {it.icon && <span className={it.danger ? "" : "text-fg-3"}>{it.icon}</span>}
                   {it.label}
                 </button>
               ),
@@ -550,13 +593,13 @@ export function SearchableSelect({
         type="button"
         onClick={() => setOpen((o) => !o)}
         className={`${inputCls} flex items-center justify-between gap-2 text-left ${
-          value ? "text-forest-900" : "text-forest-400"
+          value ? "text-fg" : "text-fg-3"
         }`}
       >
         <span className="truncate">{value || placeholder || "Alege…"}</span>
         <ChevronDown
           size={14}
-          className={`shrink-0 text-forest-400 transition ${open ? "rotate-180" : ""}`}
+          className={`shrink-0 text-fg-3 transition ${open ? "rotate-180" : ""}`}
         />
       </button>
 
@@ -567,13 +610,13 @@ export function SearchableSelect({
             ref={panelRef}
             role="listbox"
             style={{ top: pos.top, left: pos.left, width: pos.width }}
-            className="animate-fade-in fixed z-[100] overflow-hidden rounded-xl border border-forest-100 bg-white shadow-2xl"
+            className="animate-fade-in fixed z-[100] overflow-hidden rounded-card border border-stroke bg-card shadow-elev-28"
           >
-            <div className="border-b border-forest-100 p-2">
+            <div className="border-b border-stroke p-2">
               <div className="relative">
                 <Search
                   size={13}
-                  className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-forest-400"
+                  className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-fg-3"
                 />
                 <input
                   ref={inputRef}
@@ -586,7 +629,7 @@ export function SearchableSelect({
                     }
                   }}
                   placeholder="Caută…"
-                  className="w-full rounded-lg border border-forest-200 bg-forest-50/50 py-1.5 pl-8 pr-2 text-sm outline-none transition placeholder:text-forest-400 focus:border-forest-500 focus:bg-white"
+                  className="w-full rounded-control border border-stroke bg-card py-1.5 pl-8 pr-2 text-sm outline-none transition placeholder:text-fg-3 focus:border-accent focus:bg-card"
                 />
               </div>
             </div>
@@ -604,15 +647,15 @@ export function SearchableSelect({
                       onChange(o);
                       setOpen(false);
                     }}
-                    className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm transition hover:bg-forest-50 ${
-                      selected ? "bg-forest-50/60 font-semibold text-forest-900" : "text-forest-700"
+                    className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm transition hover:bg-subtle ${
+                      selected ? "bg-subtle/60 font-semibold text-fg" : "text-fg-2"
                     }`}
                   >
                     <span
                       className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border transition ${
                         selected
-                          ? "border-forest-700 bg-forest-700 text-white"
-                          : "border-forest-300 bg-white"
+                          ? "border-stroke bg-accent-hover text-on-accent"
+                          : "border-stroke-control bg-card"
                       }`}
                     >
                       {selected && <Check size={11} strokeWidth={3} />}
@@ -622,7 +665,7 @@ export function SearchableSelect({
                 );
               })}
               {filtered.length === 0 && !showCreate && (
-                <p className="px-3 py-4 text-center text-xs text-forest-400">
+                <p className="px-3 py-4 text-center text-xs text-fg-3">
                   Nicio valoare găsită.
                 </p>
               )}
@@ -631,9 +674,9 @@ export function SearchableSelect({
                   type="button"
                   disabled={creating}
                   onClick={handleCreate}
-                  className="flex w-full items-center gap-2 border-t border-forest-100 px-3 py-2 text-left text-sm font-semibold text-forest-700 transition hover:bg-amber-50 hover:text-amber-800 disabled:opacity-60"
+                  className="flex w-full items-center gap-2 border-t border-stroke px-3 py-2 text-left text-sm font-semibold text-fg-2 transition hover:bg-accent-subtle hover:text-accent-fg disabled:opacity-60"
                 >
-                  {creating ? <Spinner /> : <Plus size={13} className="shrink-0 text-amber-600" />}
+                  {creating ? <Spinner /> : <Plus size={13} className="shrink-0 text-accent-fg" />}
                   Adaugă „{trimmed}"
                 </button>
               )}
@@ -731,14 +774,14 @@ export function SortableTh({
         ref={btnRef}
         type="button"
         onClick={() => (filter ? setMenuOpen((o) => !o) : toggleSort())}
-        className="group flex items-center gap-1 font-semibold uppercase tracking-wide transition-colors hover:text-forest-800"
+        className="group flex items-center gap-1 text-xs font-semibold text-fg-2 transition-colors hover:text-fg"
         title={filter ? "Sortează / filtrează" : undefined}
       >
         {label}
         {dir === "asc" ? (
-          <ArrowUp size={13} className="text-amber-600" />
+          <ArrowUp size={13} className="text-accent-fg" />
         ) : dir === "desc" ? (
-          <ArrowDown size={13} className="text-amber-600" />
+          <ArrowDown size={13} className="text-accent-fg" />
         ) : (
           <ArrowUpDown
             size={12}
@@ -750,7 +793,7 @@ export function SortableTh({
             size={12}
             className={
               filterActive
-                ? "text-amber-600"
+                ? "text-accent-fg"
                 : "opacity-0 transition-opacity group-hover:opacity-60"
             }
           />
@@ -763,13 +806,13 @@ export function SortableTh({
             ref={panelRef}
             role="menu"
             style={{ top: pos.top, left: pos.left, width: pos.width }}
-            className="animate-fade-in fixed z-[100] overflow-hidden rounded-xl border border-forest-100 bg-white shadow-2xl"
+            className="animate-fade-in fixed z-[100] overflow-hidden rounded-card border border-stroke bg-card shadow-elev-28"
           >
-            <div className="border-b border-forest-100 px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-forest-400">
+            <div className="border-b border-stroke px-3 py-2 text-xs font-semibold text-fg-3">
               {filter.placeholder}
             </div>
             <div className="flex flex-col gap-1.5 py-2">
-              <span className="px-3 text-[10px] font-bold uppercase tracking-wider text-forest-400">
+              <span className="px-3 text-xs font-semibold text-fg-3">
                 Sortare
               </span>
               {(
@@ -787,15 +830,15 @@ export function SortableTh({
                       onSort({ key: sortKey, dir: o.dir });
                       setMenuOpen(false);
                     }}
-                    className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm transition hover:bg-forest-50 ${
-                      selected ? "bg-forest-50/60 font-semibold text-forest-900" : "text-forest-700"
+                    className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm transition hover:bg-subtle ${
+                      selected ? "bg-subtle/60 font-semibold text-fg" : "text-fg-2"
                     }`}
                   >
                     <span
                       className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border transition ${
                         selected
-                          ? "border-forest-700 bg-forest-700 text-white"
-                          : "border-forest-300 bg-white"
+                          ? "border-stroke bg-accent-hover text-on-accent"
+                          : "border-stroke-control bg-card"
                       }`}
                     >
                       {selected && <Check size={11} strokeWidth={3} />}
@@ -805,17 +848,17 @@ export function SortableTh({
                 );
               })}
             </div>
-            <div className="my-1 h-px bg-forest-100" />
+            <div className="my-1 h-px bg-subtle" />
             <div className="flex flex-col gap-1.5 py-2">
               <div className="flex items-center justify-between px-3">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-forest-400">
+                <span className="text-xs font-semibold text-fg-3">
                   Filtru
                 </span>
                 {filter.value.length > 0 && (
                   <button
                     type="button"
                     onClick={() => filter.onChange([])}
-                    className="text-[11px] font-semibold text-forest-500 transition hover:text-forest-900"
+                    className="text-xs font-semibold text-fg-3 transition hover:text-fg"
                   >
                     Golește
                   </button>
@@ -825,14 +868,14 @@ export function SortableTh({
                 <div className="relative">
                   <Search
                     size={13}
-                    className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-forest-400"
+                    className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-fg-3"
                   />
                   <input
                     ref={inputRef}
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="Caută…"
-                    className="w-full rounded-lg border border-forest-200 bg-forest-50/50 py-1.5 pl-8 pr-2 text-sm outline-none transition placeholder:text-forest-400 focus:border-forest-500 focus:bg-white"
+                    className="w-full rounded-control border border-stroke bg-card py-1.5 pl-8 pr-2 text-sm outline-none transition placeholder:text-fg-3 focus:border-accent focus:bg-card"
                   />
                 </div>
               </div>
@@ -853,15 +896,15 @@ export function SortableTh({
                         );
                         // dropdown-ul rămâne deschis — poți alege mai multe valori
                       }}
-                      className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm transition hover:bg-forest-50 ${
-                        selected ? "bg-forest-50/60 font-semibold text-forest-900" : "text-forest-700"
+                      className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm transition hover:bg-subtle ${
+                        selected ? "bg-subtle/60 font-semibold text-fg" : "text-fg-2"
                       }`}
                     >
                       <span
                         className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border transition ${
                           selected
-                            ? "border-forest-700 bg-forest-700 text-white"
-                            : "border-forest-300 bg-white"
+                            ? "border-stroke bg-accent-hover text-on-accent"
+                            : "border-stroke-control bg-card"
                         }`}
                       >
                         {selected && <Check size={11} strokeWidth={3} />}
@@ -871,7 +914,7 @@ export function SortableTh({
                   );
                 })}
                 {filtered.length === 0 && (
-                  <p className="px-3 py-4 text-center text-xs text-forest-400">
+                  <p className="px-3 py-4 text-center text-xs text-fg-3">
                     Nicio valoare găsită.
                   </p>
                 )}
@@ -886,48 +929,35 @@ export function SortableTh({
 }
 
 export function TableCard({
-  icon,
-  title,
-  subtitle,
   search,
   onSearch,
   placeholder,
+  summary,
   actions,
   error,
   children,
   footer,
 }: {
-  icon: ReactNode;
-  title: string;
-  subtitle: string;
   search: string;
   onSearch: (v: string) => void;
   placeholder: string;
+  /** Text scurt în stânga barei de căutare (ex: numărul de rezultate). */
+  summary?: ReactNode;
   actions?: ReactNode;
   error?: string | null;
   children: ReactNode;
   footer: ReactNode;
 }) {
   return (
-    <section className="animate-fade-up overflow-hidden rounded-2xl border border-forest-100 bg-white shadow-[0_1px_3px_rgba(10,49,40,0.06)]">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-forest-100 px-5 py-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-forest-50 text-forest-600">
-            {icon}
-          </div>
-          <div>
-            <h3 className="font-display text-base font-semibold text-forest-900">{title}</h3>
-            <p className="text-xs text-forest-500">{subtitle}</p>
-          </div>
-        </div>
-        <div className="flex flex-1 justify-center px-4">
-          <SearchInput value={search} onChange={onSearch} placeholder={placeholder} />
-        </div>
-        <div className="flex items-center gap-2">{actions}</div>
+    <section className="animate-fade-up overflow-hidden rounded-card border border-stroke bg-card shadow-elev-4">
+      <div className="grid grid-cols-[1fr_minmax(0,28rem)_1fr] items-center gap-4 border-b border-stroke px-5 py-4">
+        <div className="num min-w-0 truncate text-sm font-medium text-fg-2">{summary}</div>
+        <SearchInput value={search} onChange={onSearch} placeholder={placeholder} />
+        <div className="flex items-center justify-end gap-2">{actions}</div>
       </div>
       <div className="max-h-[calc(100vh_-_17rem)] overflow-auto">{children}</div>
       {error && (
-        <p className="border-t border-red-100 bg-red-50 px-5 py-2 text-xs font-medium text-red-600">
+        <p className="border-t border-danger-bg bg-danger-bg px-5 py-2 text-xs font-medium text-danger">
           {error}
         </p>
       )}
@@ -953,7 +983,7 @@ export function Pagination({
   onNext: () => void;
 }) {
   return (
-    <div className="flex items-center justify-between border-t border-forest-100 px-4 py-2.5 text-xs text-forest-600">
+    <div className="flex items-center justify-between border-t border-stroke px-4 py-2.5 text-xs text-fg-2">
       <span className="num">
         {count === 0 ? "0" : `${offset + 1}–${offset + count}`}
       </span>
@@ -961,7 +991,7 @@ export function Pagination({
         <button
           disabled={offset === 0 || loading}
           onClick={onPrev}
-          className="flex items-center gap-1 rounded-md border border-forest-200 bg-white px-2.5 py-1 font-medium transition hover:border-forest-400 hover:text-forest-800 disabled:opacity-40"
+          className="flex items-center gap-1 rounded-control border border-stroke bg-card px-2.5 py-1 font-medium transition hover:border-stroke-control hover:text-fg disabled:opacity-40"
         >
           <ChevronLeft size={13} />
           Înapoi
@@ -969,7 +999,7 @@ export function Pagination({
         <button
           disabled={!hasMore || loading}
           onClick={onNext}
-          className="flex items-center gap-1 rounded-md border border-forest-200 bg-white px-2.5 py-1 font-medium transition hover:border-forest-400 hover:text-forest-800 disabled:opacity-40"
+          className="flex items-center gap-1 rounded-control border border-stroke bg-card px-2.5 py-1 font-medium transition hover:border-stroke-control hover:text-fg disabled:opacity-40"
         >
           Înainte
           <ChevronRight size={13} />

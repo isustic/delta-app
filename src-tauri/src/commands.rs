@@ -68,6 +68,8 @@ fn in_marks(values: &[String], start: usize) -> Vec<String> {
 /// Sortare + filtre pe coloane pentru lista de produse.
 /// `sort_by` folosește convenția "-col" pentru descendent (ex: "-denumire").
 /// Filtrele `cod`/`denumire`/`grupa` acceptă mai multe valori (lista goală = fără filtru).
+// Tauri commands expose named IPC arguments individually.
+#[allow(clippy::too_many_arguments)]
 #[tauri::command]
 pub fn get_produse(
     state: State<AppState>,
@@ -830,4 +832,57 @@ pub fn sterge_raport(state: State<AppState>, id: i64) -> Result<(), String> {
         .execute("DELETE FROM rapoarte_salvate WHERE id = ?1", params![id])
         .map_err(|e| e.to_string())?;
     Ok(())
+}
+
+#[derive(Serialize)]
+pub struct SystemLook {
+    /// Culoarea de accent a Windows, ca #rrggbb. None pe alte sisteme sau dacă citirea eșuează.
+    pub accent: Option<String>,
+    /// Windows 11 (build 22000+): aplicația poate folosi fundal Mica.
+    pub mica: bool,
+}
+
+#[cfg(target_os = "windows")]
+fn windows_look() -> SystemLook {
+    use winreg::enums::{HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE};
+    use winreg::RegKey;
+
+    // DWM\AccentColor e stocat ca 0xAABBGGRR
+    let accent = RegKey::predef(HKEY_CURRENT_USER)
+        .open_subkey("Software\\Microsoft\\Windows\\DWM")
+        .ok()
+        .and_then(|k| k.get_value::<u32, _>("AccentColor").ok())
+        .map(|argb| {
+            format!(
+                "#{:02x}{:02x}{:02x}",
+                argb & 0xff,
+                (argb >> 8) & 0xff,
+                (argb >> 16) & 0xff
+            )
+        });
+
+    let build = RegKey::predef(HKEY_LOCAL_MACHINE)
+        .open_subkey("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion")
+        .ok()
+        .and_then(|k| k.get_value::<String, _>("CurrentBuildNumber").ok())
+        .and_then(|s| s.parse::<u32>().ok())
+        .unwrap_or(0);
+
+    SystemLook {
+        accent,
+        mica: build >= 22000,
+    }
+}
+
+#[cfg(not(target_os = "windows"))]
+fn windows_look() -> SystemLook {
+    SystemLook {
+        accent: None,
+        mica: false,
+    }
+}
+
+#[tauri::command]
+pub fn system_look() -> SystemLook {
+    windows_look()
 }
