@@ -8,7 +8,7 @@ import {
   PanelLeft,
   Users,
 } from "lucide-react";
-import anuaraIcon from "./assets/anuara-icon.png";
+import deltaIcon from "./assets/delta-icon.png";
 import Produse from "./pages/Produse";
 import Clienti from "./pages/Clienti";
 import Rapoarte from "./pages/Rapoarte";
@@ -20,7 +20,7 @@ const BAZA_CHILDREN: { id: Page; label: string; icon: typeof Package }[] = [
   { id: "clienti", label: "Clienți", icon: Users },
 ];
 
-const SIDEBAR_KEY = "anuara.sidebar.expanded";
+const SIDEBAR_KEY = "delta.sidebar.expanded";
 
 const isMac =
   typeof navigator !== "undefined" &&
@@ -141,7 +141,7 @@ export default function App() {
           >
             <div className="group/logo relative shrink-0">
               <img
-                src={anuaraIcon}
+                src={deltaIcon}
                 alt=""
                 className="h-10 w-10 rounded-xl shadow-[0_0_24px_rgba(251,191,36,0.2)]"
               />
@@ -163,7 +163,7 @@ export default function App() {
                 expanded ? "max-w-40 opacity-100" : "max-w-0 opacity-0"
               }`}
             >
-              Anuara
+              Delta
             </h1>
 
             {expanded && (

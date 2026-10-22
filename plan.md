@@ -1,4 +1,4 @@
-# Plan — Anuara (Tauri desktop)
+# Plan — Delta (Tauri desktop)
 
 Aplicație desktop (Windows + Mac) pentru generarea de rapoarte comparative 2025 vs 2026, pe agenți/clienți/grupe.
 
