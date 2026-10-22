@@ -3,7 +3,7 @@
 /*
  * Tokeni Fluent (Windows 11). Valorile din @theme sunt cele luminoase;
  * blocul [data-theme="dark"] de mai jos le suprascrie. Accentul e calculat
- * din culoarea sistemului (vezi src/lib/theme.ts) și setat inline pe <html>.
+ * din albastrul Delta sau culoarea sistemului și setat inline pe <html>.
  */
 @theme {
   --font-sans: "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, sans-serif;
@@ -28,12 +28,12 @@
   --color-fg-3: #8a8a8a;
   --color-fg-disabled: #c2c2c2;
 
-  /* accent (suprascris la runtime din culoarea Windows) */
-  --color-accent: #0067c0;
-  --color-accent-hover: #1a73c5;
-  --color-accent-pressed: #005a9e;
-  --color-accent-fg: #0067c0;
-  --color-accent-subtle: #e5f1fb;
+  /* Albastrul Delta din delta-mark.svg; sincronizat cu src/lib/theme.ts. */
+  --color-accent: #0053a6;
+  --color-accent-hover: #004b95;
+  --color-accent-pressed: #003e7d;
+  --color-accent-fg: #0053a6;
+  --color-accent-subtle: #e0eaf4;
   --color-on-accent: #ffffff;
 
   /* stare */
@@ -44,8 +44,9 @@
   --color-danger: #c42b1c;
   --color-danger-hover: #b02a1e;
   --color-danger-bg: #fde7e9;
-  --color-info: #0067c0;
-  --color-info-bg: #e5f1fb;
+  --color-on-danger: #ffffff;
+  --color-info: var(--color-accent-fg);
+  --color-info-bg: var(--color-accent-subtle);
 
   /* bare de derulare și skeleton */
   --color-scroll-thumb: rgba(0, 0, 0, 0.35);
@@ -101,12 +102,12 @@
   --color-fg-3: #a0a0a0;
   --color-fg-disabled: #5d5d5d;
 
-  --color-accent: #4cc2ff;
-  --color-accent-hover: #6ccfff;
-  --color-accent-pressed: #3aaee6;
-  --color-accent-fg: #4cc2ff;
-  --color-accent-subtle: rgba(76, 194, 255, 0.16);
-  --color-on-accent: #000000;
+  --color-accent: #0053a6;
+  --color-accent-hover: #004b95;
+  --color-accent-pressed: #003e7d;
+  --color-accent-fg: #6698ca;
+  --color-accent-subtle: #1a2a3b;
+  --color-on-accent: #ffffff;
 
   --color-success: #6ccb5f;
   --color-success-bg: rgba(108, 203, 95, 0.16);
@@ -115,8 +116,7 @@
   --color-danger: #ff99a4;
   --color-danger-hover: #ffb3bc;
   --color-danger-bg: rgba(255, 153, 164, 0.16);
-  --color-info: #4cc2ff;
-  --color-info-bg: rgba(76, 194, 255, 0.16);
+  --color-on-danger: #000000;
 
   --color-scroll-thumb: rgba(255, 255, 255, 0.35);
   --color-scroll-thumb-hover: rgba(255, 255, 255, 0.55);

@@ -1,3 +1,4 @@
+import { Tooltip } from "../components/Tooltip";
 import { useEffect, useState } from "react";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { Check, FileSpreadsheet, FileText, Package, PackagePlus, Pencil, Plus, Trash2, Upload } from "lucide-react";
@@ -649,12 +650,13 @@ export default function Produse() {
                   <span className="flex items-center gap-1.5">
                     <span className="text-fg">{r.denumire}</span>
                     {r.adaugat_la && (
-                      <span
-                        title={`Adăugat: ${r.adaugat_la}`}
-                        className="rounded-full bg-accent px-1.5 py-px text-label font-semibold text-on-accent"
-                      >
-                        Nou
-                      </span>
+                      <Tooltip content={`Adăugat: ${r.adaugat_la}`}>
+                        <span
+                          className="rounded-full bg-accent px-1.5 py-px text-label font-semibold text-on-accent"
+                        >
+                          Nou
+                        </span>
+                      </Tooltip>
                     )}
                   </span>
                 </td>

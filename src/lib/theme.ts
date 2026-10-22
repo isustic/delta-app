@@ -8,7 +8,8 @@ type SystemLook = { accent: string | null; mica: boolean };
 
 const THEME_KEY = "delta.theme";
 const ACCENT_KEY = "delta.accent";
-const FLUENT_BLUE = "#0067c0";
+// Capătul albastru închis al gradientului „deep” din delta-mark.svg.
+const DELTA_BLUE = "#0053a6";
 
 function readPref(): ThemePref {
   try {
@@ -20,9 +21,9 @@ function readPref(): ThemePref {
 
 function readAccentPref(): AccentPref {
   try {
-    if (localStorage.getItem(ACCENT_KEY) === "fluent") return "fluent";
+    if (localStorage.getItem(ACCENT_KEY) === "windows") return "windows";
   } catch {}
-  return "windows";
+  return "fluent";
 }
 
 function systemDark(): boolean {
@@ -63,18 +64,31 @@ function luminance(hex: string): number {
  */
 export function applyAccent(base: string, dark: boolean) {
   const surface = dark ? "#202020" : "#ffffff";
-  const toward = dark ? "#ffffff" : "#000000";
+  const onAccent = luminance(base) > 0.179 ? "#000000" : "#ffffff";
+  // Hover/pressed cresc contrastul cu textul, inclusiv pentru accente Windows deschise.
+  const toward = onAccent === "#ffffff" ? "#000000" : "#ffffff";
+  const subtle = mix(surface, base, dark ? 0.2 : 0.12);
+  const backgrounds = [surface, subtle, dark ? "#2d2d2d" : "#fbfbfb"];
+  let foreground = base;
+  for (let step = 1; step <= 20; step++) {
+    const a = luminance(foreground);
+    if (backgrounds.every((background) => {
+      const b = luminance(background);
+      return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05) >= 4.5;
+    })) break;
+    foreground = mix(base, dark ? "#ffffff" : "#000000", step / 20);
+  }
   const s = document.documentElement.style;
   s.setProperty("--color-accent", base);
   s.setProperty("--color-accent-hover", mix(base, toward, 0.1));
   s.setProperty("--color-accent-pressed", mix(base, toward, 0.25));
-  s.setProperty("--color-accent-fg", dark ? mix(base, "#ffffff", 0.2) : base);
-  s.setProperty("--color-accent-subtle", mix(surface, base, dark ? 0.2 : 0.12));
-  s.setProperty("--color-on-accent", luminance(base) > 0.4 ? "#000000" : "#ffffff");
+  s.setProperty("--color-accent-fg", foreground);
+  s.setProperty("--color-accent-subtle", subtle);
+  s.setProperty("--color-on-accent", onAccent);
 }
 
 /**
- * Tema (sistem / luminos / întunecat) și accentul (Windows / Fluent). Aplică
+ * Tema (sistem / luminos / întunecat) și accentul (Windows / Delta). Aplică
  * data-theme pe <html>, reacționează la tema sistemului și la schimbarea
  * accentului din Windows (citit la fiecare focus al ferestrei).
  */
@@ -114,7 +128,7 @@ export function useTheme() {
 
   useEffect(() => {
     const base =
-      accentPref === "windows" && look.accent ? look.accent : FLUENT_BLUE;
+      accentPref === "windows" && look.accent ? look.accent : DELTA_BLUE;
     applyAccent(base, dark);
   }, [accentPref, look.accent, dark]);
 

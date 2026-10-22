@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import { AlertTriangle, CheckCircle2, Info, Loader2 } from "lucide-react";
+import { Tooltip } from "./Tooltip";
 
 export type ToastKind = "success" | "error" | "info";
 export type ToastItem = { id: number; kind: ToastKind; text: string };
@@ -80,17 +81,20 @@ export function Button({
   size = "md",
   className = "",
   type = "button",
+  title,
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: ButtonVariant;
   size?: ButtonSize;
 }) {
   return (
-    <button
-      type={type}
-      className={`${BUTTON_BASE} ${BUTTON_VARIANT[variant]} ${BUTTON_SIZE[variant][size]} ${className}`}
-      {...props}
-    />
+    <Tooltip content={title}>
+      <button
+        type={type}
+        className={`${BUTTON_BASE} ${BUTTON_VARIANT[variant]} ${BUTTON_SIZE[variant][size]} ${className}`}
+        {...props}
+      />
+    </Tooltip>
   );
 }
 
@@ -118,23 +122,23 @@ export function SegmentedControl<T extends string>({
         const on = o.value === value;
         const Icon = o.icon;
         return (
-          <button
-            key={o.value}
-            type="button"
-            role="radio"
-            aria-checked={on}
-            aria-label={iconOnly ? o.label : undefined}
-            title={iconOnly ? o.label : undefined}
-            onClick={() => onChange(o.value)}
-            className={`flex h-7 flex-1 items-center justify-center gap-1.5 rounded-control px-2 text-xs font-medium transition-colors ${
-              on
-                ? "bg-card text-fg shadow-elev-4"
-                : "text-fg-2 hover:bg-hover hover:text-fg"
-            }`}
-          >
-            {Icon && <Icon size={14} strokeWidth={1.5} />}
-            {!iconOnly && o.label}
-          </button>
+          <Tooltip key={o.value} content={iconOnly ? o.label : undefined}>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={on}
+              aria-label={iconOnly ? o.label : undefined}
+              onClick={() => onChange(o.value)}
+              className={`flex h-7 flex-1 items-center justify-center gap-1.5 rounded-control px-2 text-xs font-medium transition-colors ${
+                on
+                  ? "bg-card text-fg shadow-elev-4"
+                  : "text-fg-2 hover:bg-hover hover:text-fg"
+              }`}
+            >
+              {Icon && <Icon size={14} strokeWidth={1.5} />}
+              {!iconOnly && o.label}
+            </button>
+          </Tooltip>
         );
       })}
     </div>
