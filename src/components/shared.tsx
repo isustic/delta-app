@@ -1,3 +1,4 @@
+import { Tooltip } from "./Tooltip";
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
@@ -80,13 +81,14 @@ export function SelectionCheckbox({
   title?: string;
 }) {
   return (
-    <input
-      type="checkbox"
-      checked={checked}
-      onChange={onChange}
-      title={title}
-      className="accent-accent"
-    />
+    <Tooltip content={title}>
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={onChange}
+        className="accent-accent"
+      />
+    </Tooltip>
   );
 }
 
@@ -319,7 +321,7 @@ export function ConfirmDeleteModal({
             type="button"
             onClick={confirma}
             disabled={busy}
-            className="flex items-center gap-2 rounded-card bg-danger px-4 py-2 text-sm font-semibold text-on-accent shadow-elev-4 transition hover:bg-danger disabled:opacity-60"
+            className="flex items-center gap-2 rounded-card bg-danger px-4 py-2 text-sm font-semibold text-on-danger shadow-elev-4 transition hover:bg-danger disabled:opacity-60"
           >
             {busy ? <Spinner /> : <Trash2 size={15} />}
             {busy ? busyLabel : confirmLabel}
@@ -374,17 +376,19 @@ export function SearchInput({
         className="w-full rounded-control border border-stroke-control bg-card py-1.5 pl-9 pr-16 text-sm outline-none transition placeholder:text-fg-3 focus:border-accent"
       />
       {value ? (
-        <button
-          type="button"
-          title="Șterge căutarea"
-          onClick={() => {
-            onChange("");
-            ref.current?.focus();
-          }}
-          className="absolute right-1.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-control text-fg-3 transition hover:bg-hover hover:text-fg"
-        >
-          <X size={14} />
-        </button>
+        <Tooltip content="Șterge căutarea">
+          <button
+            type="button"
+
+            onClick={() => {
+              onChange("");
+              ref.current?.focus();
+            }}
+            className="absolute right-1.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-control text-fg-3 transition hover:bg-hover hover:text-fg"
+          >
+            <X size={14} />
+          </button>
+        </Tooltip>
       ) : (
         <kbd className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 rounded border border-stroke bg-subtle px-1.5 py-0.5 font-sans text-[10px] font-medium text-fg-3">
           Ctrl K
@@ -770,35 +774,37 @@ export function SortableTh({
 
   return (
     <th className={`${className} select-none`}>
-      <button
-        ref={btnRef}
-        type="button"
-        onClick={() => (filter ? setMenuOpen((o) => !o) : toggleSort())}
-        className="group flex items-center gap-1 text-xs font-semibold text-fg-2 transition-colors hover:text-fg"
-        title={filter ? "Sortează / filtrează" : undefined}
-      >
-        {label}
-        {dir === "asc" ? (
-          <ArrowUp size={13} className="text-accent-fg" />
-        ) : dir === "desc" ? (
-          <ArrowDown size={13} className="text-accent-fg" />
-        ) : (
-          <ArrowUpDown
-            size={12}
-            className="opacity-0 transition-opacity group-hover:opacity-60"
-          />
-        )}
-        {filter && (
-          <Filter
-            size={12}
-            className={
-              filterActive
-                ? "text-accent-fg"
-                : "opacity-0 transition-opacity group-hover:opacity-60"
-            }
-          />
-        )}
-      </button>
+      <Tooltip content={filter ? "Sortează / filtrează" : undefined}>
+        <button
+          ref={btnRef}
+          type="button"
+          onClick={() => (filter ? setMenuOpen((o) => !o) : toggleSort())}
+          className="group flex items-center gap-1 text-xs font-semibold text-fg-2 transition-colors hover:text-fg"
+
+        >
+          {label}
+          {dir === "asc" ? (
+            <ArrowUp size={13} className="text-accent-fg" />
+          ) : dir === "desc" ? (
+            <ArrowDown size={13} className="text-accent-fg" />
+          ) : (
+            <ArrowUpDown
+              size={12}
+              className="opacity-0 transition-opacity group-hover:opacity-60"
+            />
+          )}
+          {filter && (
+            <Filter
+              size={12}
+              className={
+                filterActive
+                  ? "text-accent-fg"
+                  : "opacity-0 transition-opacity group-hover:opacity-60"
+              }
+            />
+          )}
+        </button>
+      </Tooltip>
 
       {filter && menuOpen && pos && (
         createPortal(

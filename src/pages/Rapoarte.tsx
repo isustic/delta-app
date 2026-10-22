@@ -1,3 +1,4 @@
+import { Tooltip } from "../components/Tooltip";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -207,7 +208,7 @@ function MatrixTable({
                 key={j}
                 rowSpan={2}
                 style={{ left: lefts[j], width: leadWidths[j], minWidth: leadWidths[j] }}
-                className="sticky top-0 z-30 border-b border-r border-stroke bg-layer px-3 py-2 text-left font-semibold text-on-accent"
+                className="sticky top-0 z-30 border-b border-r border-stroke bg-layer px-3 py-2 text-left font-semibold text-fg"
               >
                 {h}
               </th>
@@ -216,8 +217,8 @@ function MatrixTable({
               <th
                 key={k}
                 colSpan={3}
-                className={`sticky top-0 z-20 border-b border-r-2 border-accent bg-layer px-2 py-2 text-center text-xs font-semibold text-fg ${
-                  k % 2 === 0 ? "" : "bg-accent"
+                className={`sticky top-0 z-20 border-b border-r-2 border-accent px-2 py-2 text-center text-xs font-semibold text-fg ${
+                  k % 2 === 0 ? "bg-layer" : "bg-accent-subtle"
                 }`}
               >
                 {c}
@@ -266,7 +267,7 @@ function MatrixTable({
                   <span className="flex items-center gap-1.5">
                     <span className="truncate">{val}</span>
                     {j === 0 && row.nou && (
-                      <span className="shrink-0 rounded-full bg-accent px-1.5 py-px text-xs font-semibold text-fg">
+                      <span className="shrink-0 rounded-full bg-accent px-1.5 py-px text-xs font-semibold text-on-accent">
                         Nou
                       </span>
                     )}
@@ -302,7 +303,7 @@ function MatrixTable({
                 <td
                   key={j}
                   style={{ left: lefts[j], width: leadWidths[j], minWidth: leadWidths[j] }}
-                  className="sticky z-10 border-t border-r border-stroke-control bg-layer px-3 py-2 font-semibold text-on-accent"
+                  className="sticky z-10 border-t border-r border-stroke-control bg-layer px-3 py-2 font-semibold text-fg"
                 >
                   {val}
                 </td>
@@ -313,14 +314,14 @@ function MatrixTable({
                   <Fragment key={k}>
                     <td
                       className={`num border-t border-stroke-control px-2 py-2 text-right font-semibold text-fg ${
-                        k % 2 === 0 ? "bg-layer" : "bg-accent"
+                        k % 2 === 0 ? "bg-layer" : "bg-accent-subtle"
                       }`}
                     >
                       {nf.format(v1)}
                     </td>
                     <td
                       className={`num border-t border-l border-stroke-control border-l-accent px-2 py-2 text-right font-semibold text-fg ${
-                        k % 2 === 0 ? "bg-layer" : "bg-accent"
+                        k % 2 === 0 ? "bg-layer" : "bg-accent-subtle"
                       }`}
                     >
                       {nf.format(v2)}
@@ -380,7 +381,7 @@ function FileSlot({
       >
         <div
           className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-card transition ${
-            path ? "bg-accent-hover text-accent-fg" : "bg-subtle text-fg-2 group-hover:bg-accent group-hover:text-fg"
+            path ? "bg-accent-subtle text-accent-fg" : "bg-subtle text-fg-2 group-hover:bg-accent group-hover:text-on-accent"
           }`}
         >
           <FileSpreadsheet size={18} />
@@ -394,16 +395,17 @@ function FileSlot({
         </div>
       </button>
       {path && onClear && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onClear();
-          }}
-          title="Șterge fișierul"
-          className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full border border-stroke bg-card text-fg-3 shadow-elev-4 transition hover:border-danger hover:bg-danger-bg hover:text-danger"
-        >
-          <X size={11} strokeWidth={2.5} />
-        </button>
+        <Tooltip content="Șterge fișierul">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onClear();
+            }}
+            className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full border border-stroke bg-card text-fg-3 shadow-elev-4 transition hover:border-danger hover:bg-danger-bg hover:text-danger"
+          >
+            <X size={11} strokeWidth={2.5} />
+          </button>
+        </Tooltip>
       )}
     </div>
   );
@@ -482,7 +484,7 @@ function NeconcordanteBanner({
         className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-accent-subtle"
       >
         <div className="flex items-center gap-2.5">
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-card bg-accent text-fg">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-card bg-accent text-on-accent">
             <AlertTriangle size={16} />
           </span>
           <div>
@@ -526,24 +528,26 @@ function NeconcordanteBanner({
                     <td className="num px-4 py-1.5 font-mono text-fg-2">
                       <span className="flex items-center gap-1.5">
                         {m.lipsa_bd && (
-                          <span
-                            title="Codul nu există în baza de date"
-                            className="rounded-full bg-danger px-1.5 py-px text-xs font-semibold text-on-accent"
-                          >
-                            Lipsă
-                          </span>
+                          <Tooltip content="Codul nu există în baza de date">
+                            <span
+                              className="rounded-full bg-danger px-1.5 py-px text-xs font-semibold text-on-danger"
+                            >
+                              Lipsă
+                            </span>
+                          </Tooltip>
                         )}
                         {m.cod}
                       </span>
                     </td>
                     <td className="max-w-[16rem] px-3 py-1.5">
-                      <button
-                        onClick={() => onEdit(m)}
-                        title={`Editează ${m.denumire}`}
-                        className="block w-full truncate text-left text-fg underline-offset-2 transition hover:text-fg-2 hover:underline"
-                      >
-                        {m.denumire}
-                      </button>
+                      <Tooltip content={`Editează ${m.denumire}`}>
+                        <button
+                          onClick={() => onEdit(m)}
+                          className="block w-full truncate text-left text-fg underline-offset-2 transition hover:text-fg-2 hover:underline"
+                        >
+                          {m.denumire}
+                        </button>
+                      </Tooltip>
                     </td>
                     <td className="px-3 py-1.5">
                       <span className="rounded-full bg-subtle px-2 py-0.5 font-semibold text-fg-2">
@@ -629,7 +633,7 @@ function GrupaFilter({
         <Layers size={15} className={activ ? "text-warning" : "text-fg-3"} />
         Grupe
         {activ && (
-          <span className="num rounded-full bg-accent px-1.5 text-xs font-semibold text-fg">
+          <span className="num rounded-full bg-accent px-1.5 text-xs font-semibold text-on-accent">
             {selectate.length}
           </span>
         )}
@@ -1242,7 +1246,7 @@ export default function Rapoarte() {
             <button
               onClick={genereaza}
               disabled={!path1 || !path2 || busy || !anulValid}
-              className="flex items-center gap-2 rounded-card bg-accent px-5 py-3 text-sm font-semibold text-fg shadow-elev-8 transition hover:bg-accent hover:shadow-elev-8 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
+              className="flex items-center gap-2 rounded-card bg-accent px-5 py-3 text-sm font-semibold text-on-accent shadow-elev-8 transition hover:bg-accent hover:shadow-elev-8 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
             >
               <Zap size={16} strokeWidth={2.6} />
               Generează
@@ -1313,16 +1317,17 @@ export default function Rapoarte() {
                     <td className="num px-4 py-3 text-right text-fg-2">{r.nr_agenti}</td>
                     <td className="px-4 py-3 text-xs text-fg-3">{formatData(r.creat_la)}</td>
                     <td className="px-4 py-3 text-right">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setDeSters(r);
-                        }}
-                        title="Șterge din istoric"
-                        className="rounded-card p-1.5 text-fg-3 opacity-0 transition hover:bg-danger-bg hover:text-danger group-hover:opacity-100"
-                      >
-                        <Trash2 size={15} />
-                      </button>
+                      <Tooltip content="Șterge din istoric">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeSters(r);
+                          }}
+                          className="rounded-card p-1.5 text-fg-3 opacity-0 transition hover:bg-danger-bg hover:text-danger group-hover:opacity-100"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </Tooltip>
                     </td>
                   </tr>
                 ))}
@@ -1421,9 +1426,10 @@ export default function Rapoarte() {
               <div className="flex shrink-0 rounded-card border border-stroke bg-subtle/60 p-1 shadow-inner">
                 <button
                   onClick={() => setView("clienti")}
+                  aria-pressed={view === "clienti"}
                   className={`flex items-center gap-2 rounded-card px-3.5 py-2 text-sm font-semibold transition-all duration-200 ${
                     view === "clienti"
-                      ? "bg-layer text-on-accent shadow-elev-8"
+                      ? "bg-accent-subtle text-accent-fg shadow-elev-4"
                       : "text-fg-2 hover:text-fg"
                   }`}
                 >
@@ -1431,7 +1437,7 @@ export default function Rapoarte() {
                   <span
                     className={`num rounded-full px-1.5 text-xs transition-colors ${
                       view === "clienti"
-                        ? "bg-accent text-fg"
+                        ? "bg-accent text-on-accent"
                         : "bg-subtle text-fg-2"
                     }`}
                   >
@@ -1440,9 +1446,10 @@ export default function Rapoarte() {
                 </button>
                 <button
                   onClick={() => setView("sumar")}
+                  aria-pressed={view === "sumar"}
                   className={`flex items-center gap-2 rounded-card px-3.5 py-2 text-sm font-semibold transition-all duration-200 ${
                     view === "sumar"
-                      ? "bg-layer text-on-accent shadow-elev-8"
+                      ? "bg-accent-subtle text-accent-fg shadow-elev-4"
                       : "text-fg-2 hover:text-fg"
                   }`}
                 >
@@ -1450,7 +1457,7 @@ export default function Rapoarte() {
                   <span
                     className={`num rounded-full px-1.5 text-xs transition-colors ${
                       view === "sumar"
-                        ? "bg-accent text-fg"
+                        ? "bg-accent text-on-accent"
                         : "bg-subtle text-fg-2"
                     }`}
                   >
@@ -1477,16 +1484,17 @@ export default function Rapoarte() {
                         className="w-full rounded-card border border-stroke bg-subtle/50 py-2.5 pl-10 pr-9 text-sm outline-none transition placeholder:text-fg-3 focus:border-accent focus:bg-card focus:ring-2 focus:ring-accent/15"
                       />
                       {clientSearch !== "" && (
-                        <button
-                          onClick={() => {
-                            setClientSearch("");
-                            setVisible(100);
-                          }}
-                          title="Golește căutarea"
-                          className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-card p-1 text-fg-3 transition hover:bg-subtle hover:text-fg-2"
-                        >
-                          <X size={14} />
-                        </button>
+                        <Tooltip content="Golește căutarea">
+                          <button
+                            onClick={() => {
+                              setClientSearch("");
+                              setVisible(100);
+                            }}
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-card p-1 text-fg-3 transition hover:bg-subtle hover:text-fg-2"
+                          >
+                            <X size={14} />
+                          </button>
+                        </Tooltip>
                       )}
                     </div>
                     {(clientSearch.trim() !== "" || agentFilter !== "") && (

@@ -18,6 +18,7 @@ import Produse from "./pages/Produse";
 import Clienti from "./pages/Clienti";
 import Rapoarte from "./pages/Rapoarte";
 import { SegmentedControl } from "./components/ui";
+import { Tooltip } from "./components/Tooltip";
 import { DeltaMark } from "./components/DeltaMark";
 import { useTheme } from "./lib/theme";
 import type { AccentPref, ThemePref } from "./lib/theme";
@@ -88,8 +89,8 @@ const THEME_OPTIONS: { value: ThemePref; label: string; icon: LucideIcon }[] = [
 ];
 
 const ACCENT_OPTIONS: { value: AccentPref; label: string }[] = [
-  { value: "windows", label: "Windows" },
-  { value: "fluent", label: "Albastru" },
+  { value: "fluent", label: "Albastru Delta" },
+  { value: "windows", label: "Din Windows" },
 ];
 
 /** Element de navigare în stil NavigationView: indicator accent pe stânga când e selectat. */
@@ -109,41 +110,42 @@ function NavButton({
   trailing?: React.ReactNode;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      title={expanded ? undefined : label}
-      aria-label={label}
-      aria-current={active ? "page" : undefined}
-      className={`relative flex h-9 w-full items-center rounded-control text-left text-sm transition-colors focus-visible:outline-offset-[-2px] ${
-        expanded ? "justify-between gap-3 px-3" : "justify-center px-0"
-      } ${
-        active
-          ? "bg-card font-semibold text-fg shadow-elev-4"
-          : "text-fg-2 hover:bg-hover hover:text-fg active:bg-pressed"
-      }`}
-    >
-      <span
-        className={`absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-full bg-accent transition-opacity duration-200 ${
-          active ? "opacity-100" : "opacity-0"
+    <Tooltip content={expanded ? undefined : label}>
+      <button
+        type="button"
+        onClick={onClick}
+        aria-label={label}
+        aria-current={active ? "page" : undefined}
+        className={`relative flex h-9 w-full items-center rounded-control text-left text-sm transition-colors focus-visible:outline-offset-[-2px] ${
+          expanded ? "justify-between gap-3 px-3" : "justify-center px-0"
+        } ${
+          active
+            ? "bg-card font-semibold text-fg shadow-elev-4"
+            : "text-fg-2 hover:bg-hover hover:text-fg active:bg-pressed"
         }`}
-      />
-      <span className={`flex min-w-0 items-center ${expanded ? "gap-3" : ""}`}>
-        <Icon
-          size={16}
-          strokeWidth={1.5}
-          className={`shrink-0 ${active ? "text-accent-fg" : ""}`}
-        />
+      >
         <span
-          className={`${labelClip} ${
-            expanded ? "max-w-40 opacity-100" : "max-w-0 opacity-0"
+          className={`absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-full bg-accent transition-opacity duration-200 ${
+            active ? "opacity-100" : "opacity-0"
           }`}
-        >
-          {label}
+        />
+        <span className={`flex min-w-0 items-center ${expanded ? "gap-3" : ""}`}>
+          <Icon
+            size={16}
+            strokeWidth={1.5}
+            className={`shrink-0 ${active ? "text-accent-fg" : ""}`}
+          />
+          <span
+            className={`${labelClip} ${
+              expanded ? "max-w-40 opacity-100" : "max-w-0 opacity-0"
+            }`}
+          >
+            {label}
+          </span>
         </span>
-      </span>
-      {trailing}
-    </button>
+        {trailing}
+      </button>
+    </Tooltip>
   );
 }
 
@@ -199,15 +201,16 @@ export default function App() {
               <div className="group/logo relative flex h-8 w-8 shrink-0 items-center justify-center">
                 <DeltaMark className="h-6 w-6 text-accent-fg" />
                 {!expanded && (
-                  <button
-                    type="button"
-                    onClick={() => setExpanded(true)}
-                    aria-label="Extinde bara laterală"
-                    title={`Extinde bara laterală (${SHORTCUT})`}
-                    className="absolute inset-0 flex items-center justify-center rounded-control bg-card text-fg-2 opacity-0 transition-opacity duration-150 hover:text-fg focus-visible:opacity-100 group-hover/logo:opacity-100"
-                  >
-                    <PanelLeft size={16} strokeWidth={1.5} />
-                  </button>
+                  <Tooltip content={`Extinde bara laterală (${SHORTCUT})`}>
+                    <button
+                      type="button"
+                      onClick={() => setExpanded(true)}
+                      aria-label="Extinde bara laterală"
+                      className="absolute inset-0 flex items-center justify-center rounded-control bg-card text-fg-2 opacity-0 transition-opacity duration-150 hover:text-fg focus-visible:opacity-100 group-hover/logo:opacity-100"
+                    >
+                      <PanelLeft size={16} strokeWidth={1.5} />
+                    </button>
+                  </Tooltip>
                 )}
               </div>
               {expanded && (
@@ -215,15 +218,16 @@ export default function App() {
                   <span className="flex-1 whitespace-nowrap text-sm font-semibold text-fg">
                     Delta
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => setExpanded(false)}
-                    aria-label="Restrânge bara laterală"
-                    title={`Restrânge bara laterală (${SHORTCUT})`}
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-control text-fg-2 transition-colors hover:bg-hover hover:text-fg active:bg-pressed"
-                  >
-                    <PanelLeft size={16} strokeWidth={1.5} />
-                  </button>
+                  <Tooltip content={`Restrânge bara laterală (${SHORTCUT})`}>
+                    <button
+                      type="button"
+                      onClick={() => setExpanded(false)}
+                      aria-label="Restrânge bara laterală"
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-control text-fg-2 transition-colors hover:bg-hover hover:text-fg active:bg-pressed"
+                    >
+                      <PanelLeft size={16} strokeWidth={1.5} />
+                    </button>
+                  </Tooltip>
                 </>
               )}
             </div>
@@ -297,7 +301,7 @@ export default function App() {
             <div className="mt-auto flex flex-col gap-1">
               {expanded && (
                 <p className="whitespace-nowrap px-3 pb-1 text-xs text-fg-3">
-                  Delta v1.0.5
+                  Delta v1.0.6
                 </p>
               )}
               <div className="relative">
@@ -337,13 +341,18 @@ export default function App() {
                         />
                       </div>
                       <div className="flex flex-col gap-2">
-                        <span className="text-xs font-semibold text-fg-2">Accent</span>
+                        <span className="text-xs font-semibold text-fg-2">Culoare de accent</span>
                         <SegmentedControl
-                          label="Accent"
+                          label="Culoare de accent"
                           value={accentPref}
                           onChange={chooseAccent}
                           options={ACCENT_OPTIONS}
                         />
+                        <p className="text-xs leading-relaxed text-fg-2">
+                          {accentPref === "windows"
+                            ? "Folosește culoarea aleasă în setările Windows."
+                            : "Albastrul pictogramei Delta, pentru butoane, etichete și evidențieri."}
+                        </p>
                       </div>
                       <div className="flex flex-col gap-2 border-t border-stroke pt-4">
                         <span className="text-xs font-semibold text-fg-2">Actualizări</span>
