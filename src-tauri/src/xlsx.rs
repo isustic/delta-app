@@ -40,10 +40,37 @@ fn first_sheet_range(path: &Path) -> Result<calamine::Range<Data>, String> {
         .map_err(|e| format!("citire sheet: {e}"))
 }
 
+fn validate_headers(range: &calamine::Range<Data>, expected: &[&str]) -> Result<(), String> {
+    if range.start().map(|(_, col)| col) != Some(0) {
+        return Err("coloanele fișierului trebuie să înceapă cu A".into());
+    }
+    let header = range.rows().next().ok_or("fișierul este gol")?;
+    for (i, name) in expected.iter().enumerate() {
+        let actual = cell_to_string(header.get(i))
+            .unwrap_or_default()
+            .to_lowercase()
+            .replace('ă', "a");
+        if actual != *name {
+            return Err(format!(
+                "antet invalid: coloana {} trebuie să fie {name}",
+                i + 1
+            ));
+        }
+    }
+    Ok(())
+}
+
 pub fn import_produse_file(conn: &Connection, path: &Path) -> Result<usize, String> {
     let range = first_sheet_range(path)?;
-    let tx = conn.unchecked_transaction().map_err(|e| e.to_string())?;
-    tx.execute("DELETE FROM produse", []).map_err(|e| e.to_string())?;
+    validate_headers(&range, &["cod", "denumire", "grupa"])?;
+    // Startup seeding already owns a transaction covering both imports.
+    let tx = if conn.is_autocommit() {
+        Some(conn.unchecked_transaction().map_err(|e| e.to_string())?)
+    } else {
+        None
+    };
+    conn.execute("DELETE FROM produse", [])
+        .map_err(|e| e.to_string())?;
 
     let mut count = 0usize;
     for (i, row) in range.rows().enumerate() {
@@ -55,7 +82,7 @@ pub fn import_produse_file(conn: &Connection, path: &Path) -> Result<usize, Stri
         };
         let denumire = cell_to_string(row.get(1)).unwrap_or_default();
         let grupa = cell_to_string(row.get(2)).unwrap_or_default();
-        tx.execute(
+        conn.execute(
             "INSERT INTO produse (cod, denumire, grupa) VALUES (?1, ?2, ?3)
              ON CONFLICT(cod) DO UPDATE SET denumire = ?2, grupa = ?3",
             params![cod, denumire, grupa],
@@ -64,20 +91,31 @@ pub fn import_produse_file(conn: &Connection, path: &Path) -> Result<usize, Stri
         count += 1;
     }
 
-    tx.execute(
+    conn.execute(
         "INSERT OR IGNORE INTO grupe (nume) SELECT DISTINCT grupa FROM produse WHERE grupa != '' AND grupa IS NOT NULL",
         [],
     )
     .map_err(|e| e.to_string())?;
 
-    tx.commit().map_err(|e| e.to_string())?;
+    if count == 0 {
+        return Err("fișierul nu conține înregistrări; datele existente au fost păstrate".into());
+    }
+    if let Some(tx) = tx {
+        tx.commit().map_err(|e| e.to_string())?;
+    }
     Ok(count)
 }
 
 pub fn import_agenti_file(conn: &Connection, path: &Path) -> Result<usize, String> {
     let range = first_sheet_range(path)?;
-    let tx = conn.unchecked_transaction().map_err(|e| e.to_string())?;
-    tx.execute("DELETE FROM agenti_clienti", [])
+    validate_headers(&range, &["client", "agent"])?;
+    // Startup seeding already owns a transaction covering both imports.
+    let tx = if conn.is_autocommit() {
+        Some(conn.unchecked_transaction().map_err(|e| e.to_string())?)
+    } else {
+        None
+    };
+    conn.execute("DELETE FROM agenti_clienti", [])
         .map_err(|e| e.to_string())?;
 
     let mut count = 0usize;
@@ -89,7 +127,7 @@ pub fn import_agenti_file(conn: &Connection, path: &Path) -> Result<usize, Strin
             continue;
         };
         let agent = cell_to_string(row.get(1)).unwrap_or_default();
-        tx.execute(
+        conn.execute(
             "INSERT INTO agenti_clienti (client, agent) VALUES (?1, ?2)
              ON CONFLICT(client) DO UPDATE SET agent = ?2",
             params![client, agent],
@@ -98,13 +136,18 @@ pub fn import_agenti_file(conn: &Connection, path: &Path) -> Result<usize, Strin
         count += 1;
     }
 
-    tx.execute(
+    conn.execute(
         "INSERT OR IGNORE INTO agenti (nume) SELECT DISTINCT agent FROM agenti_clienti WHERE agent != '' AND agent IS NOT NULL",
         [],
     )
     .map_err(|e| e.to_string())?;
 
-    tx.commit().map_err(|e| e.to_string())?;
+    if count == 0 {
+        return Err("fișierul nu conține înregistrări; datele existente au fost păstrate".into());
+    }
+    if let Some(tx) = tx {
+        tx.commit().map_err(|e| e.to_string())?;
+    }
     Ok(count)
 }
 
@@ -129,6 +172,50 @@ mod tests {
         )
         .unwrap();
         conn
+    }
+
+    #[test]
+    fn invalid_imports_preserve_existing_data() {
+        let conn = setup_db();
+        import_produse_file(&conn, &res("Grupa corespunzatoare.xlsx")).unwrap();
+        import_agenti_file(&conn, &res("Raport agent.xlsx")).unwrap();
+        let before: (i64, i64) = conn
+            .query_row(
+                "SELECT (SELECT COUNT(*) FROM produse), (SELECT COUNT(*) FROM agenti_clienti)",
+                [],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )
+            .unwrap();
+        assert!(import_produse_file(&conn, &res("Raport agent.xlsx")).is_err());
+        assert!(import_agenti_file(&conn, &res("Grupa corespunzatoare.xlsx")).is_err());
+        for (label, headers) in [
+            ("products", vec!["cod", "denumire", "grupa"]),
+            ("clients", vec!["Client", "Agent"]),
+        ] {
+            let path = std::env::temp_dir()
+                .join(format!("delta-empty-{label}-{}.xlsx", std::process::id()));
+            let mut wb = rust_xlsxwriter::Workbook::new();
+            let ws = wb.add_worksheet();
+            for (i, header) in headers.iter().enumerate() {
+                ws.write_string(0, i as u16, *header).unwrap();
+            }
+            wb.save(&path).unwrap();
+            assert!(if label == "products" {
+                import_produse_file(&conn, &path)
+            } else {
+                import_agenti_file(&conn, &path)
+            }
+            .is_err());
+            std::fs::remove_file(path).unwrap();
+        }
+        let after = conn
+            .query_row(
+                "SELECT (SELECT COUNT(*) FROM produse), (SELECT COUNT(*) FROM agenti_clienti)",
+                [],
+                |r| Ok((r.get::<_, i64>(0)?, r.get::<_, i64>(1)?)),
+            )
+            .unwrap();
+        assert_eq!(before, after);
     }
 
     #[test]

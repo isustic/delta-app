@@ -11,7 +11,7 @@ pub fn init(
     db_path: &Path,
     produse_seed: Option<PathBuf>,
     agenti_seed: Option<PathBuf>,
-) -> rusqlite::Result<Db> {
+) -> Result<Db, Box<dyn std::error::Error>> {
     let conn = Connection::open(db_path)?;
     conn.execute_batch("PRAGMA journal_mode = WAL;")?;
     migrate(&conn)?;
@@ -19,24 +19,25 @@ pub fn init(
     let db = Db { conn };
 
     if !already_seeded(&db.conn)? {
-        if let Some(p) = produse_seed.filter(|p| p.exists()) {
-            let _ = xlsx::import_produse_file(&db.conn, &p);
-        }
-        if let Some(a) = agenti_seed.filter(|a| a.exists()) {
-            let _ = xlsx::import_agenti_file(&db.conn, &a);
-        }
-        mark_seeded(&db.conn)?;
+        // Seed both tables atomically: a missing or invalid resource must be
+        // retried on the next launch, never recorded as a successful seed.
+        let produse_path = produse_seed
+            .filter(|p| p.exists())
+            .ok_or("lipsește fișierul implicit de produse")?;
+        let agenti_path = agenti_seed
+            .filter(|p| p.exists())
+            .ok_or("lipsește fișierul implicit de agenți")?;
+        let tx = db.conn.unchecked_transaction()?;
+        xlsx::import_produse_file(&tx, &produse_path)?;
+        xlsx::import_agenti_file(&tx, &agenti_path)?;
+        mark_seeded(&tx)?;
+        tx.commit()?;
     }
 
     Ok(db)
 }
 
-fn ensure_column(
-    conn: &Connection,
-    table: &str,
-    column: &str,
-    ddl: &str,
-) -> rusqlite::Result<()> {
+fn ensure_column(conn: &Connection, table: &str, column: &str, ddl: &str) -> rusqlite::Result<()> {
     let has: bool = conn.query_row(
         &format!("SELECT COUNT(*) FROM pragma_table_info('{table}') WHERE name = '{column}'"),
         [],
@@ -119,4 +120,35 @@ pub fn test_conn() -> Connection {
     let conn = Connection::open_in_memory().unwrap();
     migrate(&conn).unwrap();
     conn
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn failed_seed_rolls_back_and_can_retry() {
+        let path = std::env::temp_dir().join(format!("delta-seed-{}.db", std::process::id()));
+        let resources = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources");
+        let products = resources.join("Grupa corespunzatoare.xlsx");
+        let agents = resources.join("Raport agent.xlsx");
+        assert!(init(&path, Some(products.clone()), Some(products.clone())).is_err());
+        {
+            let conn = Connection::open(&path).unwrap();
+            assert!(!already_seeded(&conn).unwrap());
+            let count: i64 = conn
+                .query_row("SELECT COUNT(*) FROM produse", [], |r| r.get(0))
+                .unwrap();
+            assert_eq!(count, 0);
+        }
+        let db = init(&path, Some(products), Some(agents)).unwrap();
+        assert!(already_seeded(&db.conn).unwrap());
+        let count: i64 = db
+            .conn
+            .query_row("SELECT COUNT(*) FROM produse", [], |r| r.get(0))
+            .unwrap();
+        assert!(count > 2000);
+        drop(db);
+        std::fs::remove_file(path).unwrap();
+    }
 }

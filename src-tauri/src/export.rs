@@ -52,11 +52,17 @@ fn sanitize_sheet_name(name: &str) -> String {
             c => c,
         })
         .collect();
-    let mut s = cleaned.trim().to_string();
+    let mut s = cleaned
+        .trim_matches(|c: char| c.is_whitespace() || c == '\'')
+        .to_string();
     if s.is_empty() {
         s = "Sheet".to_string();
     }
-    s.chars().take(31).collect()
+    s.chars()
+        .take(31)
+        .collect::<String>()
+        .trim_end_matches('\'')
+        .to_string()
 }
 
 struct MRow {
@@ -162,24 +168,46 @@ pub fn export_report(report: &Report, dest: &Path) -> Result<(), String> {
             .set_name(&total_name)
             .map_err(|e| e.to_string())?;
         let rows = client_rows(report.clienti.iter());
-        write_matrix(ws, &["Client", "Agent"], &rows, &report.coloane, &an1, &an2, &f)
-            .map_err(|e| e.to_string())?;
+        write_matrix(
+            ws,
+            &["Client", "Agent"],
+            &rows,
+            &report.coloane,
+            &an1,
+            &an2,
+            &f,
+        )
+        .map_err(|e| e.to_string())?;
     }
 
     // Per agent
-    let mut used: Vec<String> = vec!["SUMAR".to_string(), total_name];
+    let mut used: Vec<String> = vec!["sumar".to_string(), total_name.to_lowercase()];
     for agent in &report.agenti {
-        let mut name = sanitize_sheet_name(agent);
+        let base = sanitize_sheet_name(agent);
+        let mut name = base.clone();
         let mut suffix = 2;
-        while used.contains(&name) {
-            name = sanitize_sheet_name(&format!("{} {}", agent, suffix));
+        while used.contains(&name.to_lowercase()) {
+            let tail = format!(" {suffix}");
+            let prefix: String = base.chars().take(31 - tail.chars().count()).collect();
+            name = format!("{prefix}{tail}");
             suffix += 1;
         }
-        used.push(name.clone());
-        let ws = wb.add_worksheet().set_name(&name).map_err(|e| e.to_string())?;
-        let rows = client_rows(report.clienti.iter().filter(|c| c.agent == *agent));
-        write_matrix(ws, &["Client", "Agent"], &rows, &report.coloane, &an1, &an2, &f)
+        used.push(name.to_lowercase());
+        let ws = wb
+            .add_worksheet()
+            .set_name(&name)
             .map_err(|e| e.to_string())?;
+        let rows = client_rows(report.clienti.iter().filter(|c| c.agent == *agent));
+        write_matrix(
+            ws,
+            &["Client", "Agent"],
+            &rows,
+            &report.coloane,
+            &an1,
+            &an2,
+            &f,
+        )
+        .map_err(|e| e.to_string())?;
     }
 
     wb.save(dest).map_err(|e| format!("salvare xlsx: {e}"))?;
@@ -191,8 +219,7 @@ fn export_rows_csv(
     headers: &[&str],
     rows: impl Iterator<Item = Vec<String>>,
 ) -> Result<(), String> {
-    let mut out =
-        std::fs::File::create(dest).map_err(|e| format!("creare fișier: {e}"))?;
+    let mut out = std::fs::File::create(dest).map_err(|e| format!("creare fișier: {e}"))?;
 
     let mut write_line = |line: &str| -> Result<(), String> {
         out.write_all(line.as_bytes())
@@ -284,4 +311,43 @@ pub fn export_agenti(rows: &[AgentClient], dest: &Path, format: &str) -> Result<
             .map(|a| vec![a.client.clone(), a.agent.clone()])
             .collect(),
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use calamine::{open_workbook, Reader, Xlsx};
+
+    #[test]
+    fn exports_colliding_long_case_and_apostrophe_names() {
+        let long = "A very long agent name that exceeds the sheet limit";
+        let report = Report {
+            an1: "2025".into(),
+            an2: "2026".into(),
+            coloane: vec![],
+            clienti: vec![],
+            sumar: vec![],
+            neconcordante: vec![],
+            agenti: vec![
+                long.into(),
+                format!("{long} other"),
+                "sumar".into(),
+                "'Agent'".into(),
+                "Agent".into(),
+                "a/b".into(),
+                "a:b".into(),
+            ],
+        };
+        let path = std::env::temp_dir().join(format!("delta-names-{}.xlsx", std::process::id()));
+        export_report(&report, &path).unwrap();
+        let wb: Xlsx<_> = open_workbook(&path).unwrap();
+        let names = wb.sheet_names();
+        assert_eq!(names.len(), 9);
+        let unique: std::collections::HashSet<_> = names.iter().map(|s| s.to_lowercase()).collect();
+        assert_eq!(unique.len(), names.len());
+        assert!(names
+            .iter()
+            .all(|s| s.chars().count() <= 31 && !s.starts_with('\'') && !s.ends_with('\'')));
+        std::fs::remove_file(path).unwrap();
+    }
 }

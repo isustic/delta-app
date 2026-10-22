@@ -59,6 +59,8 @@ export function usePaged<T>(
       firstSearch.current = false;
       return;
     }
+    // Invalidate the previous query before the debounce starts.
+    ++reqId.current;
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => {
       setOffset(0);
@@ -69,6 +71,10 @@ export function usePaged<T>(
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, sort, extra]);
+
+  useEffect(() => () => {
+    ++reqId.current;
+  }, []);
 
   return {
     rows,

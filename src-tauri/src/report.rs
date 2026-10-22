@@ -130,6 +130,7 @@ pub fn collect_missing(
         .worksheet_range(&name)
         .map_err(|e| format!("citire sheet: {e}"))?;
     let start_col = range.start().map(|(_, c)| c as usize).unwrap_or(0);
+    validate_source(&range, start_col)?;
 
     for (i, row) in range.rows().enumerate() {
         if i == 0 {
@@ -150,13 +151,31 @@ pub fn collect_missing(
             continue;
         }
         let grupa = src_grupa.unwrap_or_else(|| "Necunoscut".to_string());
-        out.entry(cod).or_insert_with(|| (denumire.unwrap_or_default(), grupa));
+        out.entry(cod)
+            .or_insert_with(|| (denumire.unwrap_or_default(), grupa));
     }
     Ok(())
 }
 
-fn at<'a>(row: &'a [Data], start_col: usize, abs: usize) -> Option<&'a Data> {
+fn at(row: &[Data], start_col: usize, abs: usize) -> Option<&Data> {
     abs.checked_sub(start_col).and_then(|i| row.get(i))
+}
+
+fn validate_source(range: &calamine::Range<Data>, start_col: usize) -> Result<(), String> {
+    let header = range.rows().next().ok_or("fișierul raportului este gol")?;
+    for (column, expected) in [(4, "cod"), (9, "valoare contabila"), (15, "client")] {
+        let actual = cell_str(at(header, start_col, column))
+            .unwrap_or_default()
+            .to_lowercase()
+            .replace('ă', "a");
+        if actual != expected {
+            return Err(format!(
+                "antet de raport invalid: coloana {} trebuie să fie {expected}",
+                column + 1
+            ));
+        }
+    }
+    Ok(())
 }
 
 fn accumulate(
@@ -177,6 +196,7 @@ fn accumulate(
         .worksheet_range(&name)
         .map_err(|e| format!("citire sheet: {e}"))?;
     let start_col = range.start().map(|(_, c)| c as usize).unwrap_or(0);
+    validate_source(&range, start_col)?;
 
     let mut seen: std::collections::HashSet<(String, String)> = std::collections::HashSet::new();
     for (i, row) in range.rows().enumerate() {
@@ -191,9 +211,13 @@ fn accumulate(
         if cod.as_deref() == Some("Cod") {
             continue;
         }
-        let (Some(cod), Some(client), Some(v)) = (cod, client, valoare) else {
+        let (Some(cod), Some(client)) = (cod, client) else {
             continue;
         };
+        let v = valoare.filter(|v| v.is_finite()).ok_or_else(|| {
+            let row_number = range.start().map(|(r, _)| r as usize).unwrap_or(0) + i + 1;
+            format!("valoare contabilă invalidă în {an}, rândul {row_number}, client {client}")
+        })?;
 
         let label = match produse.get(&cod) {
             Some(grupa) if !grupa.trim().is_empty() => {
@@ -216,22 +240,18 @@ fn accumulate(
                 make_label(grupa)
             }
             _ => {
-                // codul nu există în baza de date — folosim grupa din fișier,
-                // dar semnalăm ca să poată fi adăugat
-                if let Some(src) = &src_grupa {
-                    let src_trim = src.trim();
-                    if !src_trim.is_empty() && seen.insert((cod.clone(), String::new())) {
-                        mismatches.push(Mismatch {
-                            cod: cod.clone(),
-                            denumire: denumire.unwrap_or_default(),
-                            grupa_fisier: src_trim.to_string(),
-                            grupa_bd: String::new(),
-                            an: an.to_string(),
-                            lipsa_bd: true,
-                        });
-                    }
+                let fallback = src_grupa.unwrap_or_else(|| "Necunoscut".to_string());
+                if seen.insert((cod.clone(), String::new())) {
+                    mismatches.push(Mismatch {
+                        cod: cod.clone(),
+                        denumire: denumire.unwrap_or_default(),
+                        grupa_fisier: fallback.clone(),
+                        grupa_bd: String::new(),
+                        an: an.to_string(),
+                        lipsa_bd: !produse.contains_key(&cod),
+                    });
                 }
-                src_grupa.unwrap_or_else(|| "Necunoscut".to_string())
+                fallback
             }
         };
 
@@ -249,19 +269,50 @@ pub fn build_report_with(
     an1: String,
     an2: String,
 ) -> Result<Report, String> {
+    if an1.len() != 4
+        || an2.len() != 4
+        || !an1.bytes().all(|c| c.is_ascii_digit())
+        || !an2.bytes().all(|c| c.is_ascii_digit())
+        || an1 >= an2
+    {
+        return Err(
+            "anii trebuie să aibă 4 cifre, iar anul de bază trebuie să fie mai recent".into(),
+        );
+    }
+    if path1 == path2 {
+        return Err("alege două fișiere diferite pentru comparație".into());
+    }
     let mut sum1: HashMap<(String, String), f64> = HashMap::new();
     let mut sum2: HashMap<(String, String), f64> = HashMap::new();
     let mut labels: BTreeSet<String> = BTreeSet::new();
     let mut mismatches: Vec<Mismatch> = Vec::new();
-    accumulate(path1, &produse, &mut sum1, &mut labels, &an1, &mut mismatches)?;
-    accumulate(path2, &produse, &mut sum2, &mut labels, &an2, &mut mismatches)?;
+    accumulate(
+        path1,
+        &produse,
+        &mut sum1,
+        &mut labels,
+        &an1,
+        &mut mismatches,
+    )?;
+    accumulate(
+        path2,
+        &produse,
+        &mut sum2,
+        &mut labels,
+        &an2,
+        &mut mismatches,
+    )?;
     mismatches.sort_by(|a, b| a.an.cmp(&b.an).then_with(|| a.cod.cmp(&b.cod)));
-    mismatches.dedup_by(|a, b| a.cod == b.cod && a.grupa_bd == b.grupa_bd);
+    let mut seen_mismatches = std::collections::HashSet::new();
+    mismatches.retain(|m| seen_mismatches.insert((m.cod.clone(), m.grupa_bd.clone())));
 
     let coloane: Vec<String> = labels.into_iter().collect();
     let ncol = coloane.len();
-    let col_index: HashMap<&str, usize> =
-        coloane.iter().enumerate().map(|(i, n)| (n.as_str(), i)).collect();
+    let col_index: HashMap<&str, usize> = coloane
+        .iter()
+        .enumerate()
+        .map(|(i, n)| (n.as_str(), i))
+        .collect();
 
     let mut by1: HashMap<String, Vec<f64>> = HashMap::new();
     for ((client, label), v) in sum1 {
@@ -291,17 +342,10 @@ pub fn build_report_with(
         };
         let v1 = by1.get(&client);
         let mut valori: Vec<(f64, f64)> = Vec::with_capacity(ncol);
-        let mut any = false;
         for i in 0..ncol {
             let a = v1.map(|r| r[i]).unwrap_or(0.0);
             let b = v2[i];
-            if a.abs() > 1e-9 || b.abs() > 1e-9 {
-                any = true;
-            }
             valori.push((a, b));
-        }
-        if !any {
-            continue;
         }
         let agent = agenti
             .get(&client)
@@ -346,6 +390,7 @@ pub fn build_report_with(
     })
 }
 
+#[cfg(test)]
 pub fn build_report(
     conn: &Connection,
     path1: &Path,
@@ -422,20 +467,32 @@ mod tests {
         let oi = idx("OI");
         let more = idx("MORE INSIDE");
 
-        let c1 = report.clienti.iter().find(|c| c.client == "CLIENT1").unwrap();
+        let c1 = report
+            .clienti
+            .iter()
+            .find(|c| c.client == "CLIENT1")
+            .unwrap();
         assert_eq!(c1.agent, "Agent A");
         assert!(!c1.nou);
         // X1 și X2 au acum aceeași grupa (OI), deci valorile se însumează.
         assert!((c1.valori[oi].0 - 150.0).abs() < 1e-6);
         assert!((c1.valori[oi].1 - 120.0).abs() < 1e-6);
 
-        let c2 = report.clienti.iter().find(|c| c.client == "CLIENT2").unwrap();
+        let c2 = report
+            .clienti
+            .iter()
+            .find(|c| c.client == "CLIENT2")
+            .unwrap();
         assert_eq!(c2.agent, "Agent B");
         assert!(!c2.nou);
         assert!((c2.valori[more].0 - 200.0).abs() < 1e-6);
         assert!((c2.valori[more].1 - 180.0).abs() < 1e-6);
 
-        let c3 = report.clienti.iter().find(|c| c.client == "CLIENT3").unwrap();
+        let c3 = report
+            .clienti
+            .iter()
+            .find(|c| c.client == "CLIENT3")
+            .unwrap();
         assert!(c3.nou);
         assert!((c3.valori[oi].0 - 0.0).abs() < 1e-6);
         assert!((c3.valori[oi].1 - 300.0).abs() < 1e-6);
@@ -460,6 +517,74 @@ mod tests {
         let _ = std::fs::remove_file(&p1);
         let _ = std::fs::remove_file(&p2);
         let _ = std::fs::remove_file(&out);
+    }
+
+    #[test]
+    fn zero_totals_and_missing_groups_still_appear() {
+        let dir = std::env::temp_dir();
+        let p1 = dir.join(format!("delta-zero-old-{}.xlsx", std::process::id()));
+        let p2 = dir.join(format!("delta-zero-new-{}.xlsx", std::process::id()));
+        write_source(&p1, &[("X", "Existing", 0.0)]);
+        write_source(&p2, &[("X", "Existing", 0.0), ("Y", "New", 5.0)]);
+        let report = build_report_with(
+            HashMap::from([("X".into(), "".into())]),
+            HashMap::new(),
+            &p1,
+            &p2,
+            "2025".into(),
+            "2026".into(),
+        )
+        .unwrap();
+        assert_eq!(report.clienti.len(), 2);
+        assert_eq!(report.neconcordante.len(), 2);
+        assert!(
+            !report
+                .clienti
+                .iter()
+                .find(|c| c.client == "Existing")
+                .unwrap()
+                .nou
+        );
+        assert!(report
+            .neconcordante
+            .iter()
+            .any(|m| m.cod == "X" && !m.lipsa_bd));
+        assert!(report
+            .neconcordante
+            .iter()
+            .any(|m| m.cod == "Y" && m.lipsa_bd));
+        assert!(build_report_with(
+            HashMap::new(),
+            HashMap::new(),
+            &p1,
+            &p2,
+            "2026".into(),
+            "2025".into()
+        )
+        .is_err());
+        // A nonnumeric amount must fail rather than silently disappear from totals.
+        let mut wb = rust_xlsxwriter::Workbook::new();
+        let ws = wb.add_worksheet();
+        ws.write_string(0, 4, "Cod").unwrap();
+        ws.write_string(0, 9, "Valoare Contabila").unwrap();
+        ws.write_string(0, 15, "Client").unwrap();
+        ws.write_string(1, 4, "X").unwrap();
+        ws.write_string(1, 9, "invalid").unwrap();
+        ws.write_string(1, 15, "Existing").unwrap();
+        wb.save(&p2).unwrap();
+        let error = build_report_with(
+            HashMap::new(),
+            HashMap::new(),
+            &p1,
+            &p2,
+            "2025".into(),
+            "2026".into(),
+        )
+        .err()
+        .unwrap();
+        assert!(error.contains("rândul 2"));
+        std::fs::remove_file(p1).unwrap();
+        std::fs::remove_file(p2).unwrap();
     }
 
     #[test]
@@ -495,7 +620,8 @@ mod tests {
 
         // Rapoartele vechi (salvate înainte de apariția câmpului neconcordante)
         // trebuie să se deserializeze cu o listă goală.
-        let old_json = r#"{"an1":"2024","an2":"2025","coloane":["A"],"clienti":[],"sumar":[],"agenti":[]}"#;
+        let old_json =
+            r#"{"an1":"2024","an2":"2025","coloane":["A"],"clienti":[],"sumar":[],"agenti":[]}"#;
         let old: Report = serde_json::from_str(old_json).unwrap();
         assert!(old.neconcordante.is_empty());
     }
