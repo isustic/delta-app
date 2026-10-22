@@ -1,6 +1,6 @@
 [package]
 name = "delta"
-version = "1.0.4"
+version = "1.0.5"
 description = "Delta — comparative business reporting"
 authors = ["Ethics"]
 edition = "2021"

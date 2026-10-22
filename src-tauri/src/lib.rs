@@ -25,7 +25,7 @@ fn set_macos_dock_icon() {
 
     let marker = unsafe { MainThreadMarker::new_unchecked() };
     let application = NSApplication::sharedApplication(marker);
-    let data = NSData::with_bytes(include_bytes!("../icons/icon.png"));
+    let data = NSData::with_bytes(include_bytes!("../icons/macos-icon.png"));
 
     if let Some(icon) = NSImage::initWithData(NSImage::alloc(), &data) {
         unsafe { application.setApplicationIconImage(Some(&icon)) };

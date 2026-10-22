@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="deep" x1="192" y1="84" x2="264" y2="428" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1684E8"/>
+      <stop offset="1" stop-color="#0053A6"/>
+    </linearGradient>
+    <linearGradient id="light" x1="266" y1="84" x2="444" y2="428" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#76DBFF"/>
+      <stop offset="0.52" stop-color="#32B8F3"/>
+      <stop offset="1" stop-color="#1384DA"/>
+    </linearGradient>
+  <linearGradient id="tile" x1="80" y1="48" x2="432" y2="464" gradientUnits="userSpaceOnUse">
+    <stop stop-color="#FCFEFF"/><stop offset="1" stop-color="#E4EFFB"/>
+  </linearGradient></defs>
+  <rect x="51" y="51" width="410" height="410" rx="93" fill="url(#tile)" stroke="#CBDCEE" stroke-width="2"/>
+  <g transform="translate(256 256) scale(.7541071429) translate(-256 -256)"><g transform="translate(-10 0)">
+  <path d="M236 88a8 8 0 0 1 14 0l29 51-129 225h183l37 64H61a9 9 0 0 1-8-14L236 88Z" fill="url(#deep)"/>
+  <path d="M278 85a8 8 0 0 1 14 0l187 329a9 9 0 0 1-8 14h-63L251 153l27-68Z" fill="url(#light)"/>
+  </g></g>
+</svg>

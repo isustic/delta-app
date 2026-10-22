@@ -18,6 +18,7 @@ import Produse from "./pages/Produse";
 import Clienti from "./pages/Clienti";
 import Rapoarte from "./pages/Rapoarte";
 import { SegmentedControl } from "./components/ui";
+import { DeltaMark } from "./components/DeltaMark";
 import { useTheme } from "./lib/theme";
 import type { AccentPref, ThemePref } from "./lib/theme";
 import { useUpdater } from "./lib/useUpdater";
@@ -191,24 +192,40 @@ export default function App() {
         >
           <aside className="flex h-full w-full flex-col px-2 pb-2 pt-1">
             <div
-              className={`flex items-center py-2 ${
-                expanded ? "justify-between pl-3 pr-1" : "justify-center"
+              className={`flex h-12 shrink-0 items-center ${
+                expanded ? "gap-2.5 pl-3 pr-1" : "justify-center"
               }`}
             >
+              <div className="group/logo relative flex h-8 w-8 shrink-0 items-center justify-center">
+                <DeltaMark className="h-6 w-6 text-accent-fg" />
+                {!expanded && (
+                  <button
+                    type="button"
+                    onClick={() => setExpanded(true)}
+                    aria-label="Extinde bara laterală"
+                    title={`Extinde bara laterală (${SHORTCUT})`}
+                    className="absolute inset-0 flex items-center justify-center rounded-control bg-card text-fg-2 opacity-0 transition-opacity duration-150 hover:text-fg focus-visible:opacity-100 group-hover/logo:opacity-100"
+                  >
+                    <PanelLeft size={16} strokeWidth={1.5} />
+                  </button>
+                )}
+              </div>
               {expanded && (
-                <span className="whitespace-nowrap text-xs font-semibold text-fg-2">
-                  Navigare
-                </span>
+                <>
+                  <span className="flex-1 whitespace-nowrap text-sm font-semibold text-fg">
+                    Delta
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setExpanded(false)}
+                    aria-label="Restrânge bara laterală"
+                    title={`Restrânge bara laterală (${SHORTCUT})`}
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-control text-fg-2 transition-colors hover:bg-hover hover:text-fg active:bg-pressed"
+                  >
+                    <PanelLeft size={16} strokeWidth={1.5} />
+                  </button>
+                </>
               )}
-              <button
-                type="button"
-                onClick={() => setExpanded((v) => !v)}
-                aria-label={expanded ? "Restrânge bara laterală" : "Extinde bara laterală"}
-                title={`${expanded ? "Restrânge" : "Extinde"} bara laterală (${SHORTCUT})`}
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-control text-fg-2 transition-colors hover:bg-hover hover:text-fg active:bg-pressed"
-              >
-                <PanelLeft size={16} strokeWidth={1.5} />
-              </button>
             </div>
 
             <nav className="mt-1 flex flex-col gap-0.5">
@@ -280,7 +297,7 @@ export default function App() {
             <div className="mt-auto flex flex-col gap-1">
               {expanded && (
                 <p className="whitespace-nowrap px-3 pb-1 text-xs text-fg-3">
-                  Delta v1.0.4
+                  Delta v1.0.5
                 </p>
               )}
               <div className="relative">

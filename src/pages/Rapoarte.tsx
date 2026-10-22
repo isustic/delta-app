@@ -40,7 +40,8 @@ import {
   type RaportSalvat,
   type Report,
 } from "../lib/api";
-import { Button, PageHeader, Spinner, ToastHost, useToasts } from "../components/ui";
+import { Button, PageHeader, ToastHost, useToasts } from "../components/ui";
+import { DeltaLoader } from "../components/DeltaLoader";
 import { ConfirmDeleteModal } from "../components/shared";
 import { EditProdusModal, AddProdusModal, LipsaProduseModal } from "./Produse";
 
@@ -463,158 +464,6 @@ function YearCard({
   );
 }
 
-function GeneratingPanel({ an1, an2 }: { an1: string; an2: string }) {
-  const STAGES = [
-    { label: "Citire", text: "Citesc și parsez cele două rapoarte Excel…" },
-    { label: "Corelare", text: "Corelez codurile cu grupele din baza de date…" },
-    { label: "Agregare", text: "Agreg valorile contabile pe clienți, agenți și grupe…" },
-    { label: "Matrice", text: "Construiesc matricea comparativă și sumarizarea…" },
-  ];
-  const [stage, setStage] = useState(0);
-
-  useEffect(() => {
-    const id = window.setInterval(() => {
-      setStage((s) => (s < STAGES.length - 1 ? s + 1 : s));
-    }, 3000);
-    return () => window.clearInterval(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const pct = Math.round(((stage + 1) / STAGES.length) * 100);
-  const an1Bars = [0.5, 0.85, 0.35, 0.7];
-  const an2Bars = [0.7, 0.4, 0.95, 0.55];
-
-  return (
-    <div className="animate-fade-up overflow-visible rounded-card border border-stroke bg-card shadow-elev-16">
-      <div className="h-[3px] w-full rounded-t-card bg-accent" />
-
-      <div className="grid gap-6 p-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] md:p-8">
-        <div className="relative flex items-center justify-center overflow-hidden rounded-card border border-stroke bg-subtle/50 p-6">
-
-          <div className="relative flex w-full items-end justify-center gap-5">
-            <div className="flex flex-col items-center gap-2">
-              <div className="flex h-24 items-end gap-1.5">
-                {an1Bars.map((h, i) => (
-                  <span
-                    key={i}
-                    className="w-3 origin-bottom rounded-t-md bg-gradient-to-t from-accent to-fg-3"
-                    style={{ height: `${h * 100}%`, animation: "var(--animate-gen-bar)", animationDelay: `${i * 0.13}s` }}
-                  />
-                ))}
-              </div>
-              <span className="num rounded-full bg-subtle px-2.5 py-0.5 text-xs font-semibold text-fg-2">
-                {an1}
-              </span>
-            </div>
-
-            <div className="relative mb-7 flex h-12 w-16 flex-col items-center justify-center">
-              <div className="absolute h-10 w-10 rounded-full border-2 border-stroke border-t-accent" style={{ animation: "var(--animate-gen-ring)" }} />
-              <Zap size={15} className="relative text-accent-fg" style={{ animation: "var(--animate-gen-pulse)" }} />
-              <div className="absolute -bottom-1 flex gap-1">
-                {[0, 1, 2].map((i) => (
-                  <span
-                    key={i}
-                    className="h-1.5 w-1.5 rounded-full bg-accent"
-                    style={{ animation: "var(--animate-gen-flow)", animationDelay: `${i * 0.35}s` }}
-                  />
-                ))}
-              </div>
-            </div>
-
-            <div className="flex flex-col items-center gap-2">
-              <div className="flex h-24 items-end gap-1.5">
-                {an2Bars.map((h, i) => (
-                  <span
-                    key={i}
-                    className="w-3 origin-bottom rounded-t-md bg-gradient-to-t from-accent to-accent"
-                    style={{ height: `${h * 100}%`, animation: "var(--animate-gen-bar)", animationDelay: `${i * 0.13 + 0.4}s` }}
-                  />
-                ))}
-              </div>
-              <span className="num rounded-full bg-accent-subtle px-2.5 py-0.5 text-xs font-semibold text-warning">
-                {an2}
-              </span>
-            </div>
-          </div>
-
-          <div className="absolute bottom-4 left-1/2 grid -translate-x-1/2 grid-cols-6 gap-1">
-            {Array.from({ length: 18 }).map((_, i) => (
-              <span
-                key={i}
-                className={`h-2 w-3 rounded-[3px] ${i % 3 === 0 ? "bg-accent/70" : "bg-stroke-control/60"}`}
-                style={{ animation: "var(--animate-gen-cell)", animationDelay: `${(i % 6) * 0.1 + Math.floor(i / 6) * 0.2}s` }}
-              />
-            ))}
-          </div>
-        </div>
-
-        <div className="flex flex-col justify-center gap-5">
-          <div>
-            <p className="flex items-center gap-2 text-xs font-bold tracking-[0.22em] text-warning">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-70" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-accent" />
-              </span>
-              Procesare în curs
-            </p>
-            <h3 className="mt-2 font-sans text-3xl font-semibold leading-tight tracking-tight text-fg">
-              Se generează raportul
-            </h3>
-            <p key={stage} className="animate-fade-in mt-2 min-h-[1.5rem] text-sm text-fg-2">
-              {STAGES[stage].text}
-            </p>
-          </div>
-
-          <div>
-            <div className="relative h-2 w-full overflow-hidden rounded-full bg-subtle">
-              <div
-                className="h-full rounded-full bg-accent transition-all duration-700 ease-out"
-                style={{ width: `${pct}%` }}
-              />
-              <div className="absolute inset-y-0 left-0 w-1/3 overflow-hidden rounded-full">
-                <span
-                  className="block h-full w-full bg-gradient-to-r from-transparent via-white/60 to-transparent"
-                  style={{ animation: "var(--animate-gen-sweep)" }}
-                />
-              </div>
-            </div>
-            <div className="mt-2 flex items-center justify-between">
-              <span className="num text-xs font-semibold text-fg-3">{pct}%</span>
-              <span className="text-xs text-fg-3">nu închide aplicația</span>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            {STAGES.map((s, i) => {
-              const done = i < stage;
-              const active = i === stage;
-              return (
-                <span
-                  key={s.label}
-                  className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all duration-300 ${
-                    active
-                      ? "bg-accent text-fg shadow-elev-8"
-                      : done
-                        ? "bg-accent-hover text-on-accent"
-                        : "bg-subtle text-fg-3"
-                  }`}
-                >
-                  {done ? (
-                    <Check size={12} strokeWidth={3} />
-                  ) : (
-                    <span className={`num ${active ? "" : "opacity-70"}`}>{i + 1}</span>
-                  )}
-                  {s.label}
-                </span>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function NeconcordanteBanner({
   items,
   onEdit,
@@ -1002,11 +851,11 @@ export default function Rapoarte() {
   const [generez, setGenerez] = useState(false);
   const [seIncarca, setSeIncarca] = useState(false);
   const [seExporta, setSeExporta] = useState(false);
-  // Orice operație lungă blochează acțiunile concurente; panoul de generare
-  // apare doar la generare efectivă, nu la încărcare/export.
+  // Orice operație lungă blochează acțiunile concurente.
   const busy = generez || seIncarca || seExporta;
   const [dragOver, setDragOver] = useState(false);
   const [visible, setVisible] = useState(100);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [istoric, setIstoric] = useState<RaportSalvat[]>([]);
   const [activId, setActivId] = useState<number | null>(null);
   const [deSters, setDeSters] = useState<RaportSalvat | null>(null);
@@ -1025,7 +874,8 @@ export default function Rapoarte() {
   useEffect(() => {
     listaRapoarte()
       .then(setIstoric)
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setInitialLoading(false));
   }, []);
 
   const stateRef = useRef({ path1, path2, busy });
@@ -1310,6 +1160,19 @@ export default function Rapoarte() {
     [report, idxVizibile],
   );
 
+  if (initialLoading || busy) {
+    return (
+      <>
+        <DeltaLoader label={
+          generez ? "Se generează raportul…"
+            : seExporta ? "Se exportă raportul…"
+              : "Se încarcă…"
+        } />
+        <ToastHost toasts={toasts} />
+      </>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-6 p-7">
       <PageHeader
@@ -1381,14 +1244,12 @@ export default function Rapoarte() {
               disabled={!path1 || !path2 || busy || !anulValid}
               className="flex items-center gap-2 rounded-card bg-accent px-5 py-3 text-sm font-semibold text-fg shadow-elev-8 transition hover:bg-accent hover:shadow-elev-8 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
             >
-              {busy ? <Spinner className="text-fg" /> : <Zap size={16} strokeWidth={2.6} />}
-              {busy ? "Se generează…" : "Generează"}
+              <Zap size={16} strokeWidth={2.6} />
+              Generează
             </button>
           </div>
         </div>
       </div>
-
-      {busy && <GeneratingPanel an1={an1} an2={an2} />}
 
       {!busy && !report && istoric.length > 0 && (
         <div className="animate-fade-up flex flex-col gap-3">
