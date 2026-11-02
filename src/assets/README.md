@@ -4,8 +4,9 @@
 an open delta. The sidebar uses its silhouette as a CSS mask, inheriting the
 current theme's accent color.
 
-Run `npm run icons` after changing the master. The script derives the macOS tile
-and regenerates every platform icon with the installed Tauri CLI:
+After changing the master, run `npm run icons` from the repository root. The
+script derives the macOS tile and regenerates every platform icon with the
+installed Tauri CLI:
 
 - `delta-tile.svg` and `src-tauri/icons/macos-icon.png`: neutral macOS tile, with
   an 824px body centered on a transparent 1024px canvas (412px on the 512px Dock PNG).
